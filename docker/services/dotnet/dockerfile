@@ -1,0 +1,6 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+WORKDIR /app
+# Solo instalamos herramientas de desarrollo por ahora
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1
+EXPOSE 80
+CMD ["dotnet", "watch", "run", "--urls", "http://0.0.0.0:80"]

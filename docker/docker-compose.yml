@@ -1,0 +1,32 @@
+services:
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./Docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - dotnet-service
+      - php-service
+
+  dotnet-service:
+    build:
+      context: .
+      dockerfile: ./Docker/services/dotnet/Dockerfile
+    volumes:
+      - ./src/dotnet-core:/app
+
+  php-service:
+    build:
+      context: .
+      dockerfile: ./Docker/services/laravel/Dockerfile
+    volumes:
+      - ./src/php-app:/var/www/html
+
+  python-service:
+    build:
+      context: .
+      dockerfile: ./Docker/services/fastapi/Dockerfile
+    volumes:
+      - ./src/fastapi:/app
+    # No exponemos puertos al exterior (localhost:8000 fallará, que es lo que quieres)
