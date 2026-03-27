@@ -5,28 +5,34 @@ services:
       - "80:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    #depends_on:
-     # - dotnet-service
-      #- php-service
+      - ../src/php-app:/var/www/html
+    depends_on:
+      - dotnet-service
+      - php-service
 
   dotnet-service:
     build:
       context: .
-      dockerfile: ./Docker/services/dotnet/Dockerfile
+      dockerfile: ./services/dotnet/Dockerfile
     volumes:
-      - ./src/dotnet-core:/app
+      - ../src/dotnet-core/NormaQ:/app
+    working_dir: /app
+    command: dotnet watch run --urls http://0.0.0.0:80
 
   php-service:
     build:
       context: .
-      dockerfile: ./Docker/services/laravel/Dockerfile
+      dockerfile: ./services/laravel/Dockerfile
     volumes:
-      - ./src/php-app:/var/www/html
+      - ../src/php-app:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
 
-  python-service:
-    build:
-      context: .
-      dockerfile: ./Docker/services/fastapi/Dockerfile
-    volumes:
-      - ./src/fastapi:/app
+  #python-service:
+   # build:
+    #  context: .
+     # dockerfile: ./Docker/services/fastapi/Dockerfile
+    #volumes:
+      #- ./src/fastapi:/app
     # No exponemos puertos al exterior (localhost:8000 fallará, que es lo que quieres)

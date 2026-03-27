@@ -1,26 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "/home/robe/Proyecto-DocsManager/src/dotnet-core/NormaQ/NormaQ.csproj": {}
+    "/app/NormaQ.csproj": {}
   },
   "projects": {
-    "/home/robe/Proyecto-DocsManager/src/dotnet-core/NormaQ/NormaQ.csproj": {
+    "/app/NormaQ.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/robe/Proyecto-DocsManager/src/dotnet-core/NormaQ/NormaQ.csproj",
+        "projectUniqueName": "/app/NormaQ.csproj",
         "projectName": "NormaQ",
-        "projectPath": "/home/robe/Proyecto-DocsManager/src/dotnet-core/NormaQ/NormaQ.csproj",
-        "packagesPath": "/home/robe/.nuget/packages/",
-        "outputPath": "/home/robe/Proyecto-DocsManager/src/dotnet-core/NormaQ/obj/",
+        "projectPath": "/app/NormaQ.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/app/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/robe/.nuget/NuGet/NuGet.Config"
+          "/root/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "/usr/lib64/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -39,7 +38,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
@@ -63,7 +62,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/lib64/dotnet/sdk/10.0.104/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.201/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

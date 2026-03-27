@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "V59Ca8OdudU=",
+  "dgSpecHash": "1j+wFRYf8Ko=",
   "success": true,
-  "projectFilePath": "/home/robe/Proyecto-DocsManager/src/dotnet-core/NormaQ/NormaQ.csproj",
+  "projectFilePath": "/app/NormaQ.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
