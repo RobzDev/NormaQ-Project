@@ -1,4 +1,8 @@
 services:
+
+
+
+
   nginx-proxy:
     image: nginx:alpine
     ports:
@@ -36,3 +40,42 @@ services:
     #volumes:
       #- ./src/fastapi:/app
     # No exponemos puertos al exterior (localhost:8000 fallará, que es lo que quieres)
+
+
+
+
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ../db/sqlserver:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "//opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD}", "-C", "-Q", "SELECT 1"]
+      interval: 10s
+      retries: 10
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql-tools
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ../db/sqlserver:/scripts
+    entrypoint: >
+     /bin/bash -c "
+      echo 'Esperando SQL Server...' &&
+      sleep 5 &&
+      /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P ${SA_PASSWORD} -C -i /scripts/init.sql &&
+      /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P ${SA_PASSWORD} -C -i /scripts/seeding.sql &&
+      echo 'Base de datos inicializada correctamente'
+                "
+
+volumes:
+  sqlserver_data:   
