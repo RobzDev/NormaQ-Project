@@ -1,8 +1,5 @@
 services:
 
-
-
-
   nginx-proxy:
     image: nginx:alpine
     ports:
@@ -33,18 +30,9 @@ services:
       - APP_ENV=local
       - APP_DEBUG=true
 
-  #python-service:
-   # build:
-    #  context: .
-     # dockerfile: ./Docker/services/fastapi/Dockerfile
-    #volumes:
-      #- ./src/fastapi:/app
-    # No exponemos puertos al exterior (localhost:8000 fallará, que es lo que quieres)
-
-
-
-
-
+  # =========================
+  # SQL Server
+  # =========================
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver
@@ -57,25 +45,53 @@ services:
       - sqlserver_data:/var/opt/mssql
       - ../db/sqlserver:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "//opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD}", "-C", "-Q", "SELECT 1"]
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD}", "-C", "-Q", "SELECT 1"]
       interval: 10s
       retries: 10
 
-  sqlserver-init:
-    image: mcr.microsoft.com/mssql-tools
+  # =========================
+  # PostgreSQL
+  # =========================
+  pgsql:
+    image: postgres:15
+    container_name: pgsql
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgsql_data:/var/lib/postgresql/data
+      - ../db/pgsql:/scripts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER}"]
+      interval: 10s
+      retries: 10
+
+  # =========================
+  # INIT MULTI-DB
+  # =========================
+  init-service:
+    build:
+      context: .
+      dockerfile: ./init.Dockerfile
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      PG_DB: ${PG_DB}
     depends_on:
       sqlserver:
         condition: service_healthy
+      pgsql:
+        condition: service_healthy
     volumes:
-      - ../db/sqlserver:/scripts
-    entrypoint: >
-     /bin/bash -c "
-      echo 'Esperando SQL Server...' &&
-      sleep 5 &&
-      /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P ${SA_PASSWORD} -C -i /scripts/init.sql &&
-      /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P ${SA_PASSWORD} -C -i /scripts/seeding.sql &&
-      echo 'Base de datos inicializada correctamente'
-                "
+      - ../db/sqlserver:/scripts/sqlserver
+      - ../db/pgsql:/scripts/pgsql
+      - ./init.sh:/init.sh
+    entrypoint: ["/bin/bash", "/init.sh"]
 
 volumes:
-  sqlserver_data:   
+  sqlserver_data:
+  pgsql_data:
