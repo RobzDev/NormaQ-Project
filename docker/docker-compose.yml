@@ -10,6 +10,9 @@ services:
     depends_on:
       - dotnet-service
       - php-service
+    networks:
+      - app-network
+
 
   dotnet-service:
     build:
@@ -18,17 +21,32 @@ services:
     volumes:
       - ../src/dotnet-core/NormaQ:/app
     working_dir: /app
-    command: dotnet watch run --urls http://0.0.0.0:80
+    depends_on:
+      sqlserver:
+         condition: service_healthy
+      
+    command: >
+      sh -c "dotnet restore && dotnet watch run --non-interactive -- --urls http://0.0.0.0:80"
+
+    networks:
+      - app-network
 
   php-service:
     build:
       context: .
       dockerfile: ./services/laravel/Dockerfile
+    user: "${UID:-1000}:${GID:-1000}" 
     volumes:
       - ../src/php-app:/var/www/html
+    depends_on:
+      - pgsql
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
+    command: >
+      sh -c "php -r 'while(!@fsockopen(\"pgsql\",5432)){echo \"Esperando a Postgres...\\n\";sleep(1);}' && php artisan migrate --force && php-fpm"
+    networks:
+      - app-network
 
   # =========================
   # SQL Server
@@ -48,7 +66,8 @@ services:
       test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD}", "-C", "-Q", "SELECT 1"]
       interval: 10s
       retries: 10
-
+    networks:
+      - app-network
   # =========================
   # PostgreSQL
   # =========================
@@ -68,30 +87,19 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${PG_USER}"]
       interval: 10s
       retries: 10
+    networks:
+      - app-network  
 
   # =========================
   # INIT MULTI-DB
   # =========================
-  init-service:
-    build:
-      context: .
-      dockerfile: ./init.Dockerfile
-    environment:
-      SA_PASSWORD: ${SA_PASSWORD}
-      PG_USER: ${PG_USER}
-      PG_PASSWORD: ${PG_PASSWORD}
-      PG_DB: ${PG_DB}
-    depends_on:
-      sqlserver:
-        condition: service_healthy
-      pgsql:
-        condition: service_healthy
-    volumes:
-      - ../db/sqlserver:/scripts/sqlserver
-      - ../db/pgsql:/scripts/pgsql
-      - ./init.sh:/init.sh
-    entrypoint: ["/bin/bash", "/init.sh"]
+  
 
 volumes:
   sqlserver_data:
   pgsql_data:
+
+
+networks:
+  app-network:
+    driver: bridge
