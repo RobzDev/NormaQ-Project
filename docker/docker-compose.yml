@@ -20,10 +20,13 @@ services:
       dockerfile: ./services/dotnet/Dockerfile
     volumes:
       - ../src/dotnet-core/NormaQ:/app
+      - ../db/sqlserver:/scripts/sqlserver:ro
     working_dir: /app
     depends_on:
       sqlserver:
          condition: service_healthy
+      redis: 
+          condition: service_healthy
       
     command: >
       sh -c "dotnet restore && dotnet watch run --non-interactive -- --urls http://0.0.0.0:80"
@@ -39,7 +42,10 @@ services:
     volumes:
       - ../src/php-app:/var/www/html
     depends_on:
-      - pgsql
+       pgsql:
+        condition: service_healthy
+       redis:
+        condition: service_healthy
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
@@ -89,6 +95,29 @@ services:
       retries: 10
     networks:
       - app-network  
+
+
+# =========================
+  # Redis
+  # =========================
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: redis-server --save "" --appendonly no
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+
+
+
+
+
+
 
   # =========================
   # INIT MULTI-DB

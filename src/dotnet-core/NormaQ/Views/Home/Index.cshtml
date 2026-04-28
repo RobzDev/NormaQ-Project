@@ -1,8 +1,50 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Bienvenido";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-8 text-center">
+        <h1 class="display-4 fw-bold text-dark">QualityDoc-Polyglot</h1>
+        <p class="lead mb-5 text-secondary">Sistema Integral de Gestión Documental para Normativas de Calidad</p>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body p-5">
+                        <div class="mb-3">
+                            <i class="bi bi-person-lock fs-1 text-primary"></i>
+                        </div>
+                        <h3 class="card-title">Acceder</h3>
+                        <p class="card-text text-muted">Ingresa al portal operativo o administrativo con tus credenciales.</p>
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg w-100">
+                            Iniciar Sesión
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body p-5">
+                        <div class="mb-3">
+                            <i class="bi bi-person-plus fs-1 text-success"></i>
+                        </div>
+                        <h3 class="card-title">Registro</h3>
+                        <p class="card-text text-muted">Solicita acceso al sistema para tu departamento y compañía.</p>
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-outline-success btn-lg w-100">
+                            Crear Cuenta
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-5 p-3 bg-white rounded shadow-sm border">
+            <small class="text-uppercase fw-bold text-muted d-block mb-2">Seguridad y Cumplimiento</small>
+            <p class="small text-muted mb-0">
+                Este sistema gestiona documentos bajo normativas ISO 9001, IATF 16949 e ISO 14001. 
+                Todo acceso es monitoreado y auditado.
+            </p>
+        </div>
+    </div>
 </div>

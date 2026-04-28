@@ -1,12 +1,49 @@
 using Microsoft.EntityFrameworkCore;
 using NormaQ.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+var redisConnectionString = "redis:6379"; 
+var multiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
+
+// 2. Inyectar como Singleton para que todo el proyecto lo use
+builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        // Ruta a la que .NET redirigirá automáticamente si un usuario sin sesión intenta acceder a algo privado
+        options.LoginPath = "/Account/Login";
+        
+        // Ruta a la que redirigirá si el usuario tiene sesión, pero sus Claims (Roles/Depto) no le dan permiso
+        options.AccessDeniedPath = "/Account/AccessDenied"; 
+        
+        // Tiempo de vida de la cookie de sesión (Ejemplo: 8 horas para una jornada laboral)
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        
+        // Renueva automáticamente el tiempo de la cookie si el usuario sigue navegando a la mitad de su vida útil
+        options.SlidingExpiration = true; 
+        
+        // Seguridad estricta
+        options.Cookie.HttpOnly = true; // Evita que JavaScript (XSS) pueda leer la cookie
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Obliga a que solo viaje por HTTPS
+        options.Cookie.SameSite = SameSiteMode.Strict; // Previene ataques CSRF
+        options.Cookie.Name = "NormaQ_AuthTicket"; // Nombre personalizado de la cookie en el navegador
+    });
+
+builder.Services.AddControllersWithViews();
+
+
 
 
 var app = builder.Build();
@@ -24,6 +61,9 @@ for (var attempt = 1; attempt <= maxMigrationAttempts; attempt++)
 
         // Reintenta migraciones para cubrir el tiempo de arranque de SQL Server en Docker.
         context.Database.Migrate();
+        string seedingSql = File.ReadAllText("/scripts/sqlserver/seeding.sql");
+        context.Database.ExecuteSqlRaw(seedingSql);
+
         logger.LogInformation("Migraciones aplicadas correctamente en el intento {Attempt}.", attempt);
         break;
     }
@@ -56,7 +96,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
-app.UseAuthorization();
+app.UseAuthentication(); // ¿Quién eres? (Lee y desencripta la cookie 'NormaQ_AuthTicket')
+app.UseAuthorization();  // ¿Qué puedes hacer? (Verifica los Claims contra las Policies que crearemos)
 
 app.MapStaticAssets();
 

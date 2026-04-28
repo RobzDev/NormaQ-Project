@@ -1,0 +1,63 @@
+@model NormaQ.ViewModels.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Registro de Usuario";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm border-0 mt-5">
+            <div class="card-header bg-dark text-white text-center py-3">
+                <h4 class="mb-0"><i class="bi bi-person-plus-fill me-2"></i>Nuevo Registro</h4>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted small text-center mb-4">
+                    Complete los datos para solicitar acceso al sistema de gestión documental.
+                </p>
+
+                <form asp-action="Register" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Nombre" class="form-label fw-bold small"></label>
+                        <input asp-for="Nombre" class="form-control" placeholder="Ej. Juan Pérez" />
+                        <span asp-validation-for="Nombre" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-bold small"></label>
+                        <input asp-for="Email" class="form-control" placeholder="usuario@empresa.com" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="DepartamentoId" class="form-label fw-bold small"></label>
+                        <select asp-for="DepartamentoId" asp-items="Model.Departamentos" class="form-select">
+                            <option value="">-- Seleccione un Departamento --</option>
+                        </select>
+                        <span asp-validation-for="DepartamentoId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Password" class="form-label fw-bold small">Contraseña</label>
+                        <input asp-for="Password" class="form-control" type="password" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle me-1"></i> Registrarse
+                        </button>
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-link btn-sm text-decoration-none text-muted">
+                            Cancelar y volver
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

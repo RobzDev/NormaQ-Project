@@ -1,0 +1,17 @@
+{
+  "name": "NormaQ Dev",
+  "dockerComposeFile": "../docker/docker-compose.yml",
+  "service": "dotnet-service", 
+  "workspaceFolder": "/app",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp"
+      ]
+    }
+  },
+
+  "postCreateCommand": "dotnet restore"
+}

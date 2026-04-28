@@ -447,3 +447,7 @@
 /app/obj/Debug/net10.0/NormaQ.pdb
 /app/obj/Debug/net10.0/NormaQ.genruntimeconfig.cache
 /app/obj/Debug/net10.0/ref/NormaQ.dll
+/app/bin/Debug/net10.0/BCrypt.Net-Next.dll
+/app/bin/Debug/net10.0/Pipelines.Sockets.Unofficial.dll
+/app/bin/Debug/net10.0/StackExchange.Redis.dll
+/app/bin/Debug/net10.0/System.IO.Hashing.dll
