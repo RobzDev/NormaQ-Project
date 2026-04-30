@@ -36,21 +36,39 @@ services:
 
   php-service:
     build:
-      context: .
-      dockerfile: ./services/laravel/Dockerfile
-    user: "${UID:-1000}:${GID:-1000}" 
+        context: .
+        dockerfile: ./services/laravel/Dockerfile
+
+    user: "${UID:-1000}:${GID:-1000}"
+
     volumes:
-      - ../src/php-app:/var/www/html
+    - ../src/php-app:/var/www/html
+
     depends_on:
-       pgsql:
+      pgsql:
+       condition: service_healthy
+      redis:
         condition: service_healthy
-       redis:
-        condition: service_healthy
+
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
+
     command: >
-      sh -c "php -r 'while(!@fsockopen(\"pgsql\",5432)){echo \"Esperando a Postgres...\\n\";sleep(1);}' && php artisan migrate --force && php-fpm"
+      sh -c "
+        php -r 'while(!@fsockopen(\"pgsql\",5432)){echo \"Esperando a Postgres...\n\";sleep(1);}';
+
+        composer install --no-interaction --prefer-dist --optimize-autoloader;
+
+        if ! grep -q '^APP_KEY=base64:' .env; then
+        php artisan key:generate --force --no-interaction;
+        fi;
+
+        php artisan migrate --force --no-interaction;
+
+        php-fpm -F
+      "
+
     networks:
       - app-network
 
