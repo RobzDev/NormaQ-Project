@@ -146,7 +146,28 @@ namespace NormaQ.Controllers
         return View(model);
     }
 
+
+
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Logout()
+        {
+        // Cierra la sesión - esto automáticamente:
+        // 1. Elimina la cookie "NormaQ_AuthTicket"
+        // 2. Limpia el ClaimsPrincipal del usuario
+        // 3. Invalida la autenticación
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    
+        // Redirige al login (o a donde prefieras)
+        return RedirectToAction("Login", "Account");
+        }
+
+
+
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]      
         public IActionResult Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid)
