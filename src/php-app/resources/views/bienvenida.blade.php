@@ -57,7 +57,7 @@
             color: var(--text);
             height: 100vh;
             overflow: hidden;
-            transition: background .3s, color .3s;
+            /* Se elimina transition de background aquí para que la API de View Transitions haga la magia */
         }
 
         /* NAV */
@@ -175,7 +175,6 @@
             background: var(--bg2);
             display: flex; align-items: center; justify-content: center;
             position: relative; overflow: hidden;
-            transition: background .3s;
         }
         .right::before {
             content: '';
@@ -256,11 +255,23 @@
         .badge-purple { background: rgba(147,51,234,0.12); color: var(--accent2); border: 0.5px solid rgba(147,51,234,0.25); }
         .badge-amber { background: rgba(245,158,11,0.1); color: var(--amber-text); border: 0.5px solid rgba(245,158,11,0.2); }
         .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+        /* VIEW TRANSITIONS API STYLES */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation: none;
+            mix-blend-mode: normal;
+        }
+        ::view-transition-old(root) {
+            z-index: 1;
+        }
+        ::view-transition-new(root) {
+            z-index: 9999;
+        }
     </style>
 </head>
 <body id="root">
 
-    <!-- NAV -->
     <nav class="nav">
         <div class="logo">
             <div class="logo-icon">
@@ -268,14 +279,13 @@
             </div>
             <span class="logo-text">NormaQ</span>
         </div>
-        <button class="toggle" onclick="toggleMode()">
+        <button class="toggle" onclick="toggleMode(event)">
             <span id="toggleIcon">☀️</span>
             <span id="toggleLabel">Modo claro</span>
         </button>
     </nav>
 
     <div class="layout">
-        <!-- LEFT: FORMULARIO -->
         <div class="left">
             <p class="greeting">Bienvenido de nuevo</p>
             <h1>Inicia sesión en tu<br><span>panel de gestión ISO</span></h1>
@@ -307,11 +317,9 @@
             <button class="btn-sso">Inicio de Sesión Único (SSO)</button>
         </div>
 
-        <!-- RIGHT: DOCUMENTOS ANIMADOS -->
         <div class="right">
             <div class="doc-scene">
 
-                <!-- Tarjeta trasera izquierda -->
                 <div class="doc-card back1">
                     <div class="doc-top">
                         <div class="doc-icon di-amber">
@@ -329,7 +337,6 @@
                     <div class="doc-badge badge-amber"><div class="badge-dot"></div>En revisión</div>
                 </div>
 
-                <!-- Tarjeta principal central -->
                 <div class="doc-card main">
                     <div class="doc-top">
                         <div class="doc-icon di-purple">
@@ -348,7 +355,6 @@
                     <div class="doc-badge badge-green"><div class="badge-dot"></div>Aprobado</div>
                 </div>
 
-                <!-- Tarjeta trasera derecha -->
                 <div class="doc-card back2">
                     <div class="doc-top">
                         <div class="doc-icon di-mint">
@@ -372,11 +378,54 @@
 
     <script>
         let dark = true;
-        function toggleMode() {
-            dark = !dark;
+
+        function applyTheme(isDark) {
+            dark = isDark;
             document.getElementById('root').className = dark ? '' : 'light';
             document.getElementById('toggleIcon').textContent = dark ? '☀️' : '🌙';
             document.getElementById('toggleLabel').textContent = dark ? 'Modo claro' : 'Modo oscuro';
+        }
+
+        function toggleMode(event) {
+            const isCurrentlyDark = dark;
+            
+            // Si el navegador no soporta la API, hace el cambio instantáneo
+            if (!document.startViewTransition) {
+                applyTheme(!isCurrentlyDark);
+                return;
+            }
+
+            // Calculamos desde dónde hizo clic el usuario
+            const x = event?.clientX ?? window.innerWidth / 2;
+            const y = event?.clientY ?? window.innerHeight / 2;
+            const endRadius = Math.hypot(
+                Math.max(x, window.innerWidth - x),
+                Math.max(y, window.innerHeight - y)
+            );
+
+            // Iniciamos la transición
+            const transition = document.startViewTransition(() => {
+                applyTheme(!isCurrentlyDark);
+            });
+
+            // Animamos la capa nueva expandiéndose
+            transition.ready.then(() => {
+                const clipPath = [
+                    `circle(0px at ${x}px ${y}px)`,
+                    `circle(${endRadius}px at ${x}px ${y}px)`
+                ];
+
+                document.documentElement.animate(
+                    {
+                        clipPath: clipPath,
+                    },
+                    {
+                        duration: 600,
+                        easing: "ease-in-out",
+                        pseudoElement: "::view-transition-new(root)",
+                    }
+                );
+            });
         }
     </script>
 
