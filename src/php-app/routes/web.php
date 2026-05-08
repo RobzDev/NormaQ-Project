@@ -9,7 +9,12 @@ Route::get('/', function () {
 
 Route::get('/hub', [SsoController::class, 'handleHub'])->name('sso.hub');
 
-// Ruta protegida por la sesión de Laravel
+// 1. RUTA DE PRUEBA (Usa esta para ver tus diseños sin tener que iniciar sesión)
+Route::get('/diseno', function () {
+    return view('operativo.dashboard'); 
+});
+
+// 2. RUTA OFICIAL PROTEGIDA (La que usará tu equipo con el middleware)
 Route::get('/operativo/dashboard', function () {
     return view('operativo.dashboard');
-})->middleware('auth.custom'); // Crearemos este middleware simple luego
+})->middleware('auth.custom');
