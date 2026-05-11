@@ -2,58 +2,166 @@
 
 @{
     ViewData["Title"] = "Dashboard Documental";
+    Layout = null; // Desactivamos el diseño viejo para usar nuestra interfaz completa
 }
 
-<!-- Navegación Superior -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
-    <div class="container-fluid px-4">
-        <a class="navbar-brand fw-bold" href="#"><i class="bi bi-shield-check text-primary me-2"></i>NormaQ</a>
-        
-        <div class="d-flex align-items-center">
-            <span class="text-light me-3 small">
-                <i class="bi bi-person-circle me-1"></i> @Model.UsuarioNombre
-            </span>
-            <!-- Nota: Generalmente el cierre de sesión apunta a Logout, no a Login, para destruir la cookie -->
-            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                <button type="submit" class="btn btn-outline-light btn-sm">Cerrar Sesión</button>
-            </form>
-        </div>
-    </div>
-</nav>
-
-<div class="container-fluid px-4">
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth antialiased dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NormaQ - Explorador Documental ISO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Hero Section: Contexto del Usuario -->
-    <div class="row mb-5">
-        <div class="col-12">
-            <div class="p-5 bg-white border rounded-3 shadow-sm d-flex justify-content-between align-items-center">
-                <div>
-                    <h5 class="text-uppercase text-muted fw-bold mb-1 tracking-wide">Departamento Actual</h5>
-                    <h1 class="display-4 fw-bolder text-dark mb-2">@Model.DepartamentoActivoNombre</h1>
-                    <div class="d-flex align-items-center mt-3">
-                        <span class="badge bg-primary fs-5 px-3 py-2 shadow-sm">
-                            <i class="bi bi-person-badge me-2"></i>Rol: @Model.RolActivoNombre
-                        </span>
+    <script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                fontFamily: { sans: ['Inter', 'sans-serif'], },
+                colors: {
+                    'dark-bg': '#050505',
+                    'dark-panel': '#0a0a0a',
+                    'dark-border': '#1a1a1a',
+                    'dark-input': '#111111',
+                    'brand-purple': '#9333ea',
+                }
+            }
+        }
+    }
+
+    // View Transitions API
+    function toggleTheme(event) {
+        if (!document.startViewTransition) {
+            document.documentElement.classList.toggle('dark');
+            return;
+        }
+        
+        const x = event?.clientX ?? window.innerWidth / 2;
+        const y = event?.clientY ?? window.innerHeight / 2;
+        const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+        
+        const transition = document.startViewTransition(() => {
+            document.documentElement.classList.toggle('dark');
+        });
+        
+        transition.ready.then(() => {
+            const clipPath = [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`];
+            document.documentElement.animate(
+                { clipPath: clipPath },
+                { duration: 600, easing: "ease-in-out", pseudoElement: "::view-transition-new(root)" }
+            );
+        });
+    }
+</script>
+    <style>
+        ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+        ::view-transition-old(root) { z-index: 1; } ::view-transition-new(root) { z-index: 9999; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.3); border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.4); }
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+    </style>
+</head>
+<body class="bg-[#F8FAFC] dark:bg-dark-bg text-slate-900 dark:text-white font-sans h-screen flex flex-col transition-colors duration-200 overflow-hidden">
+
+    <nav class="flex-shrink-0 z-40 w-full bg-white dark:bg-dark-panel border-b border-slate-200 dark:border-dark-border shadow-sm">
+        <div class="w-full px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-brand-purple flex items-center justify-center text-white font-bold text-sm shadow-[0_0_10px_rgba(147,51,234,0.3)]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">NormaQ</span>
+                        <span class="text-xs font-medium text-slate-400 dark:text-gray-500 bg-slate-100 dark:bg-dark-border px-2 py-0.5 rounded-full">Gestión ISO 9001</span>
                     </div>
                 </div>
-                
-                <!-- Selector de Departamentos -->
+
+                <div class="flex items-center gap-4 sm:gap-6">
+                    <div class="hidden sm:flex items-center gap-3 pr-6 border-r border-slate-200 dark:border-dark-border">
+                        <div class="text-right">
+                            <p class="text-xs text-slate-500 dark:text-gray-400 font-medium">@Model.DepartamentoActivoNombre</p>
+                            <p class="text-sm font-semibold text-slate-800 dark:text-gray-200">@Model.UsuarioNombre</p>
+                        </div>
+                        <div class="w-9 h-9 rounded-full bg-brand-purple/10 flex items-center justify-center text-brand-purple border border-brand-purple/20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                    </div>
+
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                        <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            <span class="hidden sm:inline">Salir</span>
+                        </button>
+                    </form>
+
+                    <button onclick="toggleTheme(event)" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-dark-border transition-colors relative overflow-hidden">
+    <svg class="w-5 h-5 text-amber-500 block dark:hidden drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+    </svg>
+    <svg class="w-5 h-5 text-brand-purple hidden dark:block drop-shadow-[0_0_8px_rgba(147,51,234,0.6)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+    </svg>
+</button>
+                </div>
+
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex-grow flex overflow-hidden">
+        
+        <aside class="w-64 lg:w-72 flex-shrink-0 bg-slate-50/50 dark:bg-[#0a0a0a] border-r border-slate-200 dark:border-dark-border overflow-y-auto p-5 hidden md:block">
+            
+            <div class="mb-8">
+                <h3 class="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-3">Filtrar por Estado</h3>
+                <ul class="space-y-1.5">
+                    <li><a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-white dark:bg-dark-input border border-brand-purple/30 dark:border-brand-purple/50 shadow-sm transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-gray-500"></div><span class="text-sm font-semibold text-brand-purple dark:text-brand-purple">Todos</span></a></li>
+                    <li><a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-dark-input border border-transparent hover:border-slate-200 dark:hover:border-dark-border transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div><span class="text-sm font-medium text-slate-600 dark:text-gray-300">Aprobado</span></a></li>
+                    <li><a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-dark-input border border-transparent hover:border-slate-200 dark:hover:border-dark-border transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-amber-500"></div><span class="text-sm font-medium text-slate-600 dark:text-gray-300">En revisión</span></a></li>
+                    <li><a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-dark-input border border-transparent hover:border-slate-200 dark:hover:border-dark-border transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-slate-400"></div><span class="text-sm font-medium text-slate-600 dark:text-gray-300">Borrador</span></a></li>
+                    <li><a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-dark-input border border-transparent hover:border-slate-200 dark:hover:border-dark-border transition-colors"><div class="w-2.5 h-2.5 rounded-full bg-red-500"></div><span class="text-sm font-medium text-slate-600 dark:text-gray-300">Obsoleto</span></a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-3">Nivel ISO</h3>
+                <ul class="space-y-1.5">
+                    <li><a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-white dark:bg-dark-input border border-brand-purple/30 shadow-sm transition-colors"><svg class="w-4 h-4 text-brand-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg><span class="text-sm font-semibold text-brand-purple">Todos los niveles</span></a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-white dark:bg-dark-bg min-w-0">
+            
+            <div class="flex-shrink-0 border-b border-slate-200 dark:border-dark-border px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-dark-bg">
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-400 font-medium mb-1">
+                        <span class="hover:text-brand-purple transition-colors">NormaQ</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <span class="text-brand-purple">@Model.DepartamentoActivoNombre</span>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-brand-purple/10 text-brand-purple w-fit border border-brand-purple/20">
+                        Rol Activo: @Model.RolActivoNombre
+                    </span>
+                </div>
+
                 @if (Model.ContextosDisponibles.Count > 1)
                 {
-                    <div class="bg-light p-4 rounded border">
-                        <label class="form-label text-muted small fw-bold mb-2">
-                            <i class="bi bi-arrow-left-right me-1"></i> Cambiar de Departamento
-                        </label>
-                        <form method="get" asp-action="Index" id="deptSwitchForm">
-                            <select name="selectedDeptId" class="form-select form-select-lg shadow-none border-secondary" onchange="document.getElementById('deptSwitchForm').submit();">
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-slate-500 dark:text-gray-400 font-bold uppercase tracking-wide hidden sm:block">Cambiar Depto:</label>
+                        <form method="get" asp-action="Index" id="deptSwitchForm" class="m-0">
+                            <select name="selectedDeptId" onchange="document.getElementById('deptSwitchForm').submit();" class="pl-3 pr-8 py-1.5 bg-slate-50 dark:bg-dark-input border border-slate-200 dark:border-dark-border rounded-lg text-sm text-slate-700 dark:text-gray-200 focus:outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple cursor-pointer shadow-sm">
                                 @foreach (var ctx in Model.ContextosDisponibles)
                                 {
-                                    if (ctx.DepartamentoId == Model.DepartamentoActivoId)
-                                    {
+                                    if (ctx.DepartamentoId == Model.DepartamentoActivoId) {
                                         <option value="@ctx.DepartamentoId" selected>@ctx.NombreDepartamento (@ctx.NombreRol)</option>
-                                    }
-                                    else
-                                    {
+                                    } else {
                                         <option value="@ctx.DepartamentoId">@ctx.NombreDepartamento (@ctx.NombreRol)</option>
                                     }
                                 }
@@ -62,125 +170,122 @@
                     </div>
                 }
             </div>
-        </div>
-    </div>
 
-    <!-- Estructura Documental ISO -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h4 class="fw-bold mb-3"><i class="bi bi-folder-symlink me-2"></i>Estructura ISO 9001</h4>
-            <p class="text-muted">Explora el repositorio documental normativo del departamento de <strong>@Model.DepartamentoActivoNombre</strong>.</p>
-        </div>
-    </div>
-
-    <!-- ÁRBOL JERÁRQUICO -->
-    <div class="accordion shadow-sm mb-5" id="accordionNiveles">
-        @foreach (var nivel in Model.ArbolDocumental)
-        {
-            var targetId = $"collapseNivel_{nivel.Id}";
-            var headerId = $"headingNivel_{nivel.Id}";
-
-            <!-- CAPA 1: NIVEL ISO -->
-            <div class="accordion-item border-0 border-bottom">
-                <h2 class="accordion-header" id="@headerId">
-                    <button class="accordion-button collapsed fw-bold bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#@targetId" aria-expanded="false" aria-controls="@targetId">
-                        <i class="bi bi-folder-fill text-warning me-3 fs-5"></i>
-                        0@(nivel.Numero) - @nivel.Nombre
-                        <span class="badge bg-secondary ms-auto me-3 rounded-pill">@nivel.DocumentosLogicos.Count docs</span>
-                    </button>
-                </h2>
-                <div id="@targetId" class="accordion-collapse collapse" aria-labelledby="@headerId" data-bs-parent="#accordionNiveles">
-                    <div class="accordion-body bg-white p-4">
-                        
-                        <!-- RENDERIZADO UI: ADMINISTRADOR -->
-                        @if (Model.RolActivoNombre == "Administrador")
-                        {
-                            <div class="mb-3 border-bottom pb-3">
-                                <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
-                                    <i class="bi bi-plus-lg me-1"></i> Nuevo Documento Lógico
-                                </button>
-                                <span class="ms-2 text-muted small">Crea un registro maestro</span>
-                            </div>
-                        }
-
-                        @if (!nivel.DocumentosLogicos.Any())
-                        {
-                            <div class="text-center p-4 border border-dashed rounded bg-light">
-                                <i class="bi bi-inbox text-muted fs-3 d-block mb-2"></i>
-                                <span class="text-muted small">Carpeta vacía.</span>
-                            </div>
-                        }
-                        else
-                        {
-                            <!-- CAPA 2: DOCUMENTOS LÓGICOS -->
-                            <div class="list-group list-group-flush border-start border-2 border-secondary ms-3">
-                                @foreach (var doc in nivel.DocumentosLogicos)
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="max-w-4xl space-y-4">
+                    
+                    @foreach (var nivel in Model.ArbolDocumental)
+                    {
+                        <details class="group bg-white dark:bg-dark-panel border border-slate-200 dark:border-dark-border rounded-xl shadow-sm overflow-hidden" open>
+                            
+                            <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-[#111] transition-colors select-none">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-4 h-4 text-slate-400 transition-transform duration-200 group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
+                                    <h3 class="font-semibold text-slate-800 dark:text-gray-200">
+                                        Nivel @(nivel.Numero) — @nivel.Nombre
+                                    </h3>
+                                </div>
+                                <span class="text-xs font-medium text-slate-500 dark:text-gray-500 bg-slate-100 dark:bg-dark-input border border-slate-200 dark:border-dark-border px-2.5 py-1 rounded-full">
+                                    @nivel.DocumentosLogicos.Count docs
+                                </span>
+                            </summary>
+                            
+                            <div class="px-4 pb-4 pt-1 border-t border-slate-100 dark:border-dark-border">
+                                
+                                @if (Model.RolActivoNombre == "Administrador")
                                 {
-                                    <div class="list-group-item border-0 py-3 ps-4 pe-0 position-relative">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <div class="fw-bold text-dark">
-                                                <i class="bi bi-file-earmark-text text-primary me-2"></i>
-                                                <span class="text-primary">@doc.Codigo</span> — @doc.Nombre
-                                            </div>
-
-                                            <!-- RENDERIZADO UI: ELABORADOR -->
-                                            @if (Model.RolActivoNombre == "Elaborador")
-                                            {
-                                                <button class="btn btn-outline-success btn-sm">
-                                                    <i class="bi bi-cloud-upload me-1"></i> Subir Nueva Versión
-                                                </button>
-                                            }
-                                        </div>
-
-                                        <!-- CAPA 3: HISTORIAL DE VERSIONES -->
-                                        @if (doc.VersionesFisicas.Any())
-                                        {
-                                            <div class="mt-2 ms-4 bg-light p-2 rounded border">
-                                                <small class="text-uppercase fw-bold text-muted d-block mb-2" style="font-size: 0.7rem;">Historial de Versiones Físicas</small>
-                                                <div class="d-flex flex-column gap-2">
-                                                    @foreach (var version in doc.VersionesFisicas)
-                                                    {
-                                                        string badgeClass = version.Estado switch {
-                                                            "Aprobado" => "bg-success",
-                                                            "Revision" => "bg-warning text-dark",
-                                                            "Borrador" => "bg-secondary",
-                                                            "Obsoleto" => "bg-danger",
-                                                            _ => "bg-light text-dark"
-                                                        };
-
-                                                        string filaBg = version.RequiereMiIntervencion ? "bg-warning bg-opacity-10 border border-warning" : "bg-white border";
-
-                                                        <div class="d-flex justify-content-between align-items-center p-2 rounded @filaBg">
-                                                            <div class="small">
-                                                                <span class="fw-bold me-2">v@(version.VersionMayor).@(version.VersionMenor)</span>
-                                                                <span class="badge @badgeClass">@version.Estado</span>
-                                                            </div>
-                                                            
-                                                            <div class="d-flex gap-2">
-                                                                <button class="btn btn-link btn-sm text-decoration-none p-0">
-                                                                    <i class="bi bi-eye"></i> Ver (MinIO)
-                                                                </button>
-
-                                                                <!-- RENDERIZADO UI: REVISOR / APROBADOR -->
-                                                                @if ((Model.RolActivoNombre == "Revisor" || Model.RolActivoNombre == "Aprobador") && version.RequiereMiIntervencion)
-                                                                {
-                                                                    <button class="btn btn-warning btn-sm ms-2 shadow-sm fw-bold">
-                                                                        <i class="bi bi-pen me-1"></i> Revisar / Aprobar
-                                                                    </button>
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
+                                    <div class="pl-7 pt-3 pb-2 mb-2 border-b border-slate-100 dark:border-dark-border">
+                                        <button class="flex items-center gap-2 px-4 py-1.5 bg-brand-purple/10 hover:bg-brand-purple/20 text-brand-purple dark:text-brand-purple text-xs font-bold uppercase tracking-wide rounded-lg transition-colors border border-brand-purple/30">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                            Nuevo Documento Lógico
+                                        </button>
                                     </div>
                                 }
+
+                                <div class="pl-7 space-y-2 mt-2">
+                                    @if (!nivel.DocumentosLogicos.Any())
+                                    {
+                                        <div class="text-center p-6 border border-dashed border-slate-200 dark:border-dark-border rounded-xl bg-slate-50 dark:bg-[#0f0f0f]">
+                                            <svg class="w-8 h-8 text-slate-300 dark:text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                            <p class="text-sm text-slate-400 dark:text-gray-500">Carpeta vacía. No hay documentos en este nivel.</p>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var doc in nivel.DocumentosLogicos)
+                                        {
+                                            <div class="flex flex-col p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-[#151515] border border-transparent hover:border-slate-200 dark:hover:border-dark-border transition-colors group/doc">
+                                                
+                                                <div class="flex justify-between items-start mb-2">
+                                                    <div class="flex items-start gap-3">
+                                                        <svg class="w-5 h-5 text-slate-400 dark:text-gray-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                        <div>
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="text-xs font-mono font-medium text-brand-purple bg-brand-purple/10 px-1.5 py-0.5 rounded">@doc.Codigo</span>
+                                                                <span class="text-sm font-semibold text-slate-800 dark:text-white">@doc.Nombre</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    @if (Model.RolActivoNombre == "Elaborador")
+                                                    {
+                                                        <button class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-200 dark:border-emerald-500/30 rounded-lg flex items-center gap-1.5 transition-colors">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                                            Subir Versión
+                                                        </button>
+                                                    }
+                                                </div>
+
+                                                @if (doc.VersionesFisicas.Any())
+                                                {
+                                                    <div class="ml-8 pl-4 border-l-2 border-slate-100 dark:border-dark-border space-y-2 mt-1">
+                                                        @foreach (var version in doc.VersionesFisicas)
+                                                        {
+                                                            string bgHighlight = version.RequiereMiIntervencion ? "bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800" : "bg-white dark:bg-dark-panel border-slate-100 dark:border-dark-border";
+                                                            
+                                                            <div class="flex items-center justify-between p-2 rounded-lg border @bgHighlight">
+                                                                <div class="flex items-center gap-3">
+                                                                    <span class="text-xs font-mono font-semibold text-slate-600 dark:text-gray-400">v@(version.VersionMayor).@(version.VersionMenor)</span>
+                                                                    
+                                                                    @if(version.Estado == "Aprobado") {
+                                                                        <span class="text-[10px] uppercase tracking-wide font-bold text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded">Aprobado</span>
+                                                                    } else if(version.Estado == "Revision") {
+                                                                        <span class="text-[10px] uppercase tracking-wide font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded">En Revisión</span>
+                                                                    } else if(version.Estado == "Obsoleto") {
+                                                                        <span class="text-[10px] uppercase tracking-wide font-bold text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-500/10 px-2 py-0.5 rounded">Obsoleto</span>
+                                                                    } else {
+                                                                        <span class="text-[10px] uppercase tracking-wide font-bold text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-dark-input px-2 py-0.5 rounded">@version.Estado</span>
+                                                                    }
+                                                                </div>
+
+                                                                <div class="flex items-center gap-2">
+                                                                    <button class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">Ver (MinIO)</button>
+                                                                    
+                                                                    @if ((Model.RolActivoNombre == "Revisor" || Model.RolActivoNombre == "Aprobador") && version.RequiereMiIntervencion)
+                                                                    {
+                                                                        <button class="ml-2 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded shadow-sm flex items-center gap-1 transition-colors">
+                                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                                            Revisar / Aprobar
+                                                                        </button>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                </div>
                             </div>
-                        }
-                    </div>
+                        </details>
+                    }
+
                 </div>
             </div>
-        }
+        </main>
     </div>
-</div>
+
+</body>
+</html>
