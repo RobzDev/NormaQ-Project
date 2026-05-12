@@ -1,50 +1,177 @@
 ﻿@{
-    ViewData["Title"] = "Bienvenido";
+    ViewData["Title"] = "Bienvenido a NormaQ";
+    Layout = null; // Apagamos el diseño viejo para usar el nuestro
 }
 
-<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
-    <div class="col-md-8 text-center">
-        <h1 class="display-4 fw-bold text-dark">QualityDoc-Polyglot</h1>
-        <p class="lead mb-5 text-secondary">Sistema Integral de Gestión Documental para Normativas de Calidad</p>
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth antialiased dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] — Gestión Documental</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], },
+                    colors: {
+                        'dark-bg': '#050505',
+                        'dark-panel': '#0a0a0a',
+                        'dark-border': '#1a1a1a',
+                        'brand-purple': '#9333ea',
+                    }
+                }
+            }
+        }
 
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-body p-5">
-                        <div class="mb-3">
-                            <i class="bi bi-person-lock fs-1 text-primary"></i>
-                        </div>
-                        <h3 class="card-title">Acceder</h3>
-                        <p class="card-text text-muted">Ingresa al portal operativo o administrativo con tus credenciales.</p>
-                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg w-100">
-                            Iniciar Sesión
-                        </a>
-                    </div>
-                </div>
-            </div>
+        // Transición Premium Sol/Luna
+        function toggleTheme(event) {
+            const isCurrentlyDark = document.documentElement.classList.contains('dark');
+            if (!document.startViewTransition) {
+                document.documentElement.classList.toggle('dark');
+                return;
+            }
+            const x = event?.clientX ?? window.innerWidth / 2;
+            const y = event?.clientY ?? window.innerHeight / 2;
+            const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+            const transition = document.startViewTransition(() => {
+                document.documentElement.classList.toggle('dark');
+            });
+            transition.ready.then(() => {
+                const clipPath = [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`];
+                document.documentElement.animate(
+                    { clipPath: clipPath },
+                    { duration: 600, easing: "ease-in-out", pseudoElement: "::view-transition-new(root)" }
+                );
+            });
+        }
+    </script>
 
-            <div class="col-md-6">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-body p-5">
-                        <div class="mb-3">
-                            <i class="bi bi-person-plus fs-1 text-success"></i>
-                        </div>
-                        <h3 class="card-title">Registro</h3>
-                        <p class="card-text text-muted">Solicita acceso al sistema para tu departamento y compañía.</p>
-                        <a asp-controller="Account" asp-action="Register" class="btn btn-outline-success btn-lg w-100">
-                            Crear Cuenta
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <style>
+        ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+        ::view-transition-old(root) { z-index: 1; } ::view-transition-new(root) { z-index: 9999; }
         
-        <div class="mt-5 p-3 bg-white rounded shadow-sm border">
-            <small class="text-uppercase fw-bold text-muted d-block mb-2">Seguridad y Cumplimiento</small>
-            <p class="small text-muted mb-0">
-                Este sistema gestiona documentos bajo normativas ISO 9001, IATF 16949 e ISO 14001. 
-                Todo acceso es monitoreado y auditado.
+        /* Animación suave para el fondo luminoso */
+        @@keyframes pulse-glow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.05); }
+        }
+        .animate-pulse-glow { animation: pulse-glow 8s ease-in-out infinite; }
+    </style>
+</head>
+
+<body class="bg-[#F8FAFC] dark:bg-dark-bg text-slate-900 dark:text-white font-sans h-screen flex flex-col relative overflow-hidden transition-colors duration-200">
+
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-brand-purple/20 dark:bg-brand-purple/10 blur-[100px] rounded-full pointer-events-none animate-pulse-glow z-0"></div>
+
+    <nav class="relative z-40 w-full bg-transparent px-6 py-4 flex-shrink-0">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-purple flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(147,51,234,0.4)]">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <span class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">NormaQ</span>
+            </div>
+
+            <button onclick="toggleTheme(event)" class="p-2 rounded-full bg-white/50 dark:bg-dark-panel/50 backdrop-blur-md border border-slate-200 dark:border-dark-border hover:bg-white dark:hover:bg-dark-input transition-colors relative overflow-hidden shadow-sm cursor-pointer">
+                <svg class="w-5 h-5 text-amber-500 block dark:hidden drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <svg class="w-5 h-5 text-brand-purple hidden dark:block drop-shadow-[0_0_8px_rgba(147,51,234,0.6)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <main class="relative z-10 flex-grow flex flex-col items-center justify-center px-4 sm:px-6">
+        
+        <div class="text-center max-w-3xl mx-auto mb-8">
+            <span class="inline-block py-1 px-3 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-xs font-bold tracking-widest uppercase mb-4">Plataforma Políglota</span>
+            <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-4 leading-tight">
+                QualityDoc <br class="hidden sm:block">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-purple to-blue-500">Gestión Inteligente</span>
+            </h1>
+            <p class="text-base text-slate-600 dark:text-gray-400 max-w-2xl mx-auto">
+                Sistema Integral de Gestión Documental para Normativas de Calidad. Diseñado para optimizar tus flujos de aprobación y mantener el cumplimiento ISO.
             </p>
         </div>
-    </div>
-</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-4xl mx-auto relative z-10">
+            
+            <div class="group relative bg-white/60 dark:bg-dark-panel/60 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-dark-border hover:border-brand-purple/50 dark:hover:border-brand-purple/50 shadow-lg hover:shadow-[0_0_40px_rgba(147,51,234,0.15)] transition-all duration-300 flex flex-col h-full overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-brand-purple/10 to-transparent rounded-tr-3xl rounded-bl-full pointer-events-none"></div>
+                
+                <div class="w-14 h-14 rounded-2xl bg-brand-purple/10 border border-brand-purple/20 flex items-center justify-center text-brand-purple mb-5 group-hover:scale-110 transition-transform duration-300 relative z-10">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+                
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2 relative z-10">Acceso al Portal</h2>
+                <p class="text-sm text-slate-500 dark:text-gray-400 mb-6 flex-grow relative z-10">
+                    Ingresa a tu panel operativo o administrativo con tus credenciales seguras.
+                </p>
+                
+                <a asp-controller="Account" asp-action="Login" class="flex items-center justify-center w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-slate-900 font-semibold transition-colors group-hover:shadow-md mt-auto relative z-10">
+                    Iniciar Sesión
+                    <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </a>
+            </div>
+
+            <div class="group relative bg-white/60 dark:bg-dark-panel/60 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-dark-border hover:border-emerald-500/50 dark:hover:border-emerald-500/50 shadow-lg hover:shadow-[0_0_40px_rgba(16,185,129,0.1)] transition-all duration-300 flex flex-col h-full overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-tr-3xl rounded-bl-full pointer-events-none"></div>
+                
+                <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-5 group-hover:scale-110 transition-transform duration-300 relative z-10">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                </div>
+                
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2 relative z-10">Nuevo Registro</h2>
+                <p class="text-sm text-slate-500 dark:text-gray-400 mb-6 flex-grow relative z-10">
+                    Solicita acceso al sistema para tu departamento y comienza a gestionar normativas.
+                </p>
+                
+                <a asp-controller="Account" asp-action="Register" class="flex items-center justify-center w-full py-3.5 rounded-xl bg-white dark:bg-transparent border-2 border-slate-200 dark:border-dark-border hover:border-emerald-500 dark:hover:border-emerald-500 text-slate-700 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold transition-colors mt-auto relative z-10">
+                    Crear Cuenta
+                </a>
+            </div>
+
+        </div>
+
+        </div>
+    </main>
+
+    <footer class="relative z-10 w-full px-6 py-6 flex-shrink-0">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 p-3.5 rounded-2xl bg-slate-100/50 dark:bg-[#0a0a0a]/80 border border-slate-200 dark:border-[#1a1a1a] backdrop-blur-sm text-center sm:text-left">
+            <div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex flex-shrink-0 items-center justify-center text-blue-600 dark:text-blue-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            </div>
+            <div>
+                <h4 class="text-xs font-bold text-slate-800 dark:text-gray-200 uppercase tracking-wider mb-0.5">Seguridad y Cumplimiento</h4>
+                <p class="text-[11px] text-slate-500 dark:text-gray-400 leading-tight">
+                    Conexión segura al motor de bases de datos. Este sistema gestiona documentos bajo normativas ISO 9001, IATF 16949 e ISO 14001. Todo acceso es monitoreado y auditado por la administración.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+    <footer class="relative z-10 w-full px-6 py-8 mt-auto">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 p-4 rounded-2xl bg-slate-100/50 dark:bg-[#0a0a0a]/80 border border-slate-200 dark:border-[#1a1a1a] backdrop-blur-sm text-center sm:text-left">
+            <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex flex-shrink-0 items-center justify-center text-blue-600 dark:text-blue-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            </div>
+            <div>
+                <h4 class="text-xs font-bold text-slate-800 dark:text-gray-200 uppercase tracking-wider mb-1">Seguridad y Cumplimiento</h4>
+                <p class="text-xs text-slate-500 dark:text-gray-400">
+                    Conexión segura al motor de bases de datos. Este sistema gestiona documentos bajo normativas ISO 9001, IATF 16949 e ISO 14001. Todo acceso es monitoreado y auditado por la administración.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
