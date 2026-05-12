@@ -126,12 +126,13 @@
                                             </div>
 
                                             <!-- RENDERIZADO UI: ELABORADOR -->
-                                            @if (Model.RolActivoNombre == "Elaborador")
-                                            {
-                                                <button class="btn btn-outline-success btn-sm">
-                                                    <i class="bi bi-cloud-upload me-1"></i> Subir Nueva Versión
-                                                </button>
-                                            }
+                                                    @if (Model.RolActivoNombre == "Elaborador")
+                                                    {
+                                                        <a asp-action="SubirVersion" asp-route-documentoId="@doc.Id"
+                                                               class="btn btn-outline-success btn-sm">
+                                                            <i class="bi bi-cloud-upload me-1"></i> Subir Nueva Versión
+                                                        </a>
+                                                    }
                                         </div>
 
                                         <!-- CAPA 3: HISTORIAL DE VERSIONES -->

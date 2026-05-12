@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NormaQ.Data;
 
@@ -11,9 +12,11 @@ using NormaQ.Data;
 namespace NormaQ.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260512035400_UpdateEstadoFirmaConstraint")]
+    partial class UpdateEstadoFirmaConstraint
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -213,10 +216,7 @@ namespace NormaQ.Migrations
 
                     b.HasIndex(new[] { "UsuarioId", "EstadoFirma" }, "IX_Flujos_UsuarioEstado");
 
-                    b.ToTable("Flujos_Aprobacion", null, t =>
-                        {
-                            t.HasCheckConstraint("CHK_Flujos_Estado", "estado_firma IN ('Pendiente', 'Aprobado', 'Rechazado', 'Cancelado')");
-                        });
+                    b.ToTable("Flujos_Aprobacion", (string)null);
                 });
 
             modelBuilder.Entity("NormaQ.Models.NivelesDocumento", b =>

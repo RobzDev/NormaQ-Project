@@ -38,13 +38,7 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
 
     public virtual DbSet<VersionesDocumento> VersionesDocumentos { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseSqlServer("Server=localhost,1433;Database=QualityDocDB;User Id=sa;Password=bennyPERRY97?;TrustServerCertificate=True");
-        }
-    }
+    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -141,7 +135,12 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Flujos_A__3213E83FC1B62FB2");
 
-            entity.ToTable("Flujos_Aprobacion");
+            entity.ToTable("Flujos_Aprobacion", t =>
+            {
+                t.HasCheckConstraint(
+                    "CHK_Flujos_Estado",
+                "estado_firma IN ('Pendiente', 'Aprobado', 'Rechazado', 'Cancelado')");
+            });
 
             entity.HasIndex(e => new { e.UsuarioId, e.EstadoFirma }, "IX_Flujos_UsuarioEstado");
 

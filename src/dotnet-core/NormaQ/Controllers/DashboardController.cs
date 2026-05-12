@@ -258,5 +258,36 @@ namespace NormaQ.Controllers
 
 
 
+        [HttpGet]
+        public async Task<IActionResult> SubirVersion(int documentoId)
+        {
+            // 1. Obtener el documento con su información básica y depto
+            var documento = await _context.Documentos
+                .Include(d => d.Nivel)
+                .Include(d => d.Departamento)
+                .FirstOrDefaultAsync(d => d.Id == documentoId);
+
+            if (documento == null) return NotFound();
+
+            // 2. Validación de seguridad: ¿El usuario tiene permiso en el depto del documento?
+            // Buscamos si existe un claim DeptRole que coincida con el depto del documento y rol Elaborador (Id 4)
+            string claimRequerido = $"{documento.DepartamentoId}:4";
+            bool esElaboradorAutorizado = User.Claims.Any(c => c.Type == "DeptRole" && c.Value == claimRequerido);
+
+            // También permitimos al Admin (Id 1) por si necesita asistir
+            bool esAdminAutorizado = User.Claims.Any(c => c.Type == "DeptRole" && c.Value == $"{documento.DepartamentoId}:1");
+
+            if (!esElaboradorAutorizado && !esAdminAutorizado)
+            {
+                return Forbid();
+            }
+
+            // 3. Pasar el objeto a la vista (usaremos el modelo de la base de datos directamente para esta prueba rápida)
+            return View(documento);
+        }
+
+
+
+
     }
 }

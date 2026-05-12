@@ -16,21 +16,22 @@ services:
 
   dotnet-service:
     build:
-      context: .
-      dockerfile: ./services/dotnet/Dockerfile
+      context: ..
+      dockerfile: docker/services/dotnet/Dockerfile  # Ajusta rutas según tu estructura
+      target: dev
     volumes:
-      - ../src/dotnet-core/NormaQ:/app
+      # Montamos SOLO los archivos fuente, NO obj/ ni bin/
+      - ../src/dotnet-core/NormaQ:/app          # Solo lectura para el código
+      - dotnet-build:/app/obj                        # Volumen nombrado para build
+      - dotnet-bin:/app/bin                          # Volumen nombrado para output
+      - nuget-cache:/root/.nuget/packages            # Cache de NuGet persistente
       - ../db/sqlserver:/scripts/sqlserver:ro
     working_dir: /app
     depends_on:
       sqlserver:
-         condition: service_healthy
-      redis: 
-          condition: service_healthy
-      
-    command: >
-      sh -c "dotnet restore && dotnet watch run --non-interactive -- --urls http://0.0.0.0:80"
-
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -167,6 +168,9 @@ volumes:
   sqlserver_data:
   pgsql_data:
   minio_data:
+  dotnet-build:
+  dotnet-bin:
+  nuget-cache:
 
 
 networks:
