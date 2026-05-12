@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using NormaQ.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using StackExchange.Redis;
+using Amazon.S3;
+using NormaQ.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,7 +46,19 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddControllersWithViews();
 
 
-
+// MinIO
+var minioConfig = builder.Configuration.GetSection("MinIO");
+builder.Services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(
+    minioConfig["AccessKey"],
+    minioConfig["SecretKey"],
+    new AmazonS3Config
+    {
+        ServiceURL = $"http://{minioConfig["Endpoint"]}",
+        ForcePathStyle = true,
+        UseHttp = true
+    }
+));
+builder.Services.AddSingleton<MinioService>();
 
 var app = builder.Build();
 
@@ -84,6 +98,13 @@ for (var attempt = 1; attempt <= maxMigrationAttempts; attempt++)
     }
 }
 
+
+// Inicializar bucket al arrancar
+using (var scope = app.Services.CreateScope())
+{
+    var minio = scope.ServiceProvider.GetRequiredService<MinioService>();
+    await minio.EnsureBucketExistsAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
