@@ -1,6 +1,153 @@
 ﻿@{
-    ViewData["Title"] = "Privacy Policy";
+    ViewData["Title"] = "Políticas de Privacidad";
+    Layout = null; // Mantenemos nuestra independencia visual
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth antialiased dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] — NormaQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], },
+                    colors: {
+                        'dark-bg': '#050505',
+                        'dark-panel': '#0a0a0a',
+                        'dark-border': '#1a1a1a',
+                        'brand-purple': '#9333ea',
+                    }
+                }
+            }
+        }
+
+        // View Transitions API (Sol/Luna)
+        function toggleTheme(event) {
+            const isCurrentlyDark = document.documentElement.classList.contains('dark');
+            if (!document.startViewTransition) {
+                document.documentElement.classList.toggle('dark');
+                return;
+            }
+            const x = event?.clientX ?? window.innerWidth / 2;
+            const y = event?.clientY ?? window.innerHeight / 2;
+            const endRadius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+            const transition = document.startViewTransition(() => {
+                document.documentElement.classList.toggle('dark');
+            });
+            transition.ready.then(() => {
+                const clipPath = [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`];
+                document.documentElement.animate(
+                    { clipPath: clipPath },
+                    { duration: 600, easing: "ease-in-out", pseudoElement: "::view-transition-new(root)" }
+                );
+            });
+        }
+    </script>
+
+    <style>
+        ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+        ::view-transition-old(root) { z-index: 1; } ::view-transition-new(root) { z-index: 9999; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.3); border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.4); }
+    </style>
+</head>
+<body class="bg-[#F8FAFC] dark:bg-dark-bg text-slate-900 dark:text-gray-300 font-sans min-h-screen flex flex-col relative transition-colors duration-200">
+
+    <div class="fixed top-0 inset-x-0 h-[500px] bg-gradient-to-b from-brand-purple/10 dark:from-brand-purple/5 to-transparent pointer-events-none z-0"></div>
+
+    <nav class="relative z-40 w-full bg-white/80 dark:bg-dark-bg/80 backdrop-blur-xl border-b border-slate-200 dark:border-dark-border px-6 py-4 sticky top-0">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            
+            <a asp-controller="Home" asp-action="Index" class="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-brand-purple dark:text-gray-400 dark:hover:text-brand-purple transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Volver al inicio
+            </a>
+
+            <button onclick="toggleTheme(event)" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-dark-border transition-colors relative overflow-hidden cursor-pointer">
+                <svg class="w-5 h-5 text-amber-500 block dark:hidden drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg class="w-5 h-5 text-brand-purple hidden dark:block drop-shadow-[0_0_8px_rgba(147,51,234,0.6)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            </button>
+        </div>
+    </nav>
+
+    <main class="relative z-10 flex-grow px-4 sm:px-6 py-12">
+        <div class="max-w-3xl mx-auto bg-white dark:bg-dark-panel border border-slate-200 dark:border-dark-border rounded-2xl shadow-sm p-8 sm:p-12">
+            
+            <div class="border-b border-slate-200 dark:border-dark-border pb-8 mb-8 text-center sm:text-left">
+                <div class="flex items-center justify-center sm:justify-start gap-3 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-brand-purple flex items-center justify-center text-white font-bold text-sm shadow-[0_0_10px_rgba(147,51,234,0.3)]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">NormaQ</span>
+                </div>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">@ViewData["Title"]</h1>
+                <p class="text-sm text-slate-500 dark:text-gray-400">Última actualización: @DateTime.Now.ToString("dd 'de' MMMM, yyyy", new System.Globalization.CultureInfo("es-MX"))</p>
+            </div>
+
+            <div class="space-y-8 text-sm sm:text-base leading-relaxed">
+                
+                <section>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-3">1. Recopilación de Información</h2>
+                    <p>
+                        En <strong>NormaQ</strong> (Sistema Integral de Gestión Documental), la privacidad y seguridad de la información son nuestra máxima prioridad. Recopilamos la información estrictamente necesaria para la creación de perfiles operativos, flujos de autorización y pistas de auditoría requeridas por estándares internacionales.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-3">2. Uso de los Datos y Cumplimiento Normativo</h2>
+                    <p>
+                        Los datos proporcionados (tales como ID de empleado, correo institucional y firmas digitales) se utilizan exclusivamente para:
+                    </p>
+                    <ul class="list-disc pl-5 mt-2 space-y-2 text-slate-600 dark:text-gray-400">
+                        <li>Autenticación segura mediante Single Sign-On (SSO).</li>
+                        <li>Gestión de permisos basados en roles (RBAC) para acceso a manuales y procedimientos.</li>
+                        <li>Trazabilidad y registro de auditoría en la aprobación de documentos.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-3">3. Seguridad de la Información</h2>
+                    <p>
+                        Implementamos controles técnicos y organizativos para proteger sus datos contra acceso no autorizado, alteración, divulgación o destrucción. Las conexiones a nuestra base de datos SQL Server y el almacenamiento de documentos físicos se realizan bajo protocolos de encriptación de extremo a extremo.
+                    </p>
+                    <div class="mt-4 p-4 bg-brand-purple/5 border border-brand-purple/20 rounded-lg">
+                        <p class="text-sm text-brand-purple dark:text-brand-purple font-medium flex items-start gap-2">
+                            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Nota de Auditoría: El sistema guarda un registro inmutable de quién y cuándo se modifica una normativa para garantizar la integridad de los flujos de trabajo.
+                        </p>
+                    </div>
+                </section>
+
+                <section>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-3">4. Cookies y Sesiones</h2>
+                    <p>
+                        Utilizamos cookies técnicas y tokens de sesión estrictamente para mantener su autenticación activa mientras navega por el sistema. No empleamos cookies de rastreo para fines publicitarios de terceros.
+                    </p>
+                </section>
+
+            </div>
+            
+            <div class="mt-12 pt-8 border-t border-slate-200 dark:border-dark-border text-center">
+                <p class="text-sm text-slate-500 dark:text-gray-400">
+                    Si tienes dudas sobre nuestras políticas o el manejo de tu información en el departamento, contacta al <a href="#" class="text-brand-purple hover:underline font-medium">Administrador del Sistema</a>.
+                </p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="py-6 text-center text-xs text-slate-400 dark:text-gray-600">
+        &copy; @DateTime.Now.Year NormaQ - Sistema de Gestión Documental
+    </footer>
+
+</body>
+</html>
