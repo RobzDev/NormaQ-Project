@@ -1,4 +1,9 @@
+
+
+
+
 @model NormaQ.ViewModels.DashboardViewModel
+
 
 @{
     ViewData["Title"] = "Dashboard Documental";
@@ -135,49 +140,58 @@
                                                     }
                                         </div>
 
-                                        <!-- CAPA 3: HISTORIAL DE VERSIONES -->
-                                        @if (doc.VersionesFisicas.Any())
-                                        {
-                                            <div class="mt-2 ms-4 bg-light p-2 rounded border">
-                                                <small class="text-uppercase fw-bold text-muted d-block mb-2" style="font-size: 0.7rem;">Historial de Versiones Físicas</small>
-                                                <div class="d-flex flex-column gap-2">
-                                                    @foreach (var version in doc.VersionesFisicas)
-                                                    {
-                                                        string badgeClass = version.Estado switch {
-                                                            "Aprobado" => "bg-success",
-                                                            "Revision" => "bg-warning text-dark",
-                                                            "Borrador" => "bg-secondary",
-                                                            "Obsoleto" => "bg-danger",
-                                                            _ => "bg-light text-dark"
-                                                        };
-
-                                                        string filaBg = version.RequiereMiIntervencion ? "bg-warning bg-opacity-10 border border-warning" : "bg-white border";
-
-                                                        <div class="d-flex justify-content-between align-items-center p-2 rounded @filaBg">
-                                                            <div class="small">
-                                                                <span class="fw-bold me-2">v@(version.VersionMayor).@(version.VersionMenor)</span>
-                                                                <span class="badge @badgeClass">@version.Estado</span>
-                                                            </div>
-                                                            
-                                                            <div class="d-flex gap-2">
-                                                                <button class="btn btn-link btn-sm text-decoration-none p-0">
-                                                                    <i class="bi bi-eye"></i> Ver (MinIO)
-                                                                </button>
-
-                                                                <!-- RENDERIZADO UI: REVISOR / APROBADOR -->
-                                                                @if ((Model.RolActivoNombre == "Revisor" || Model.RolActivoNombre == "Aprobador") && version.RequiereMiIntervencion)
+                                                @if (doc.VersionesFisicas.Any())
+                                                {
+                                                    <div class="mt-2 ms-4 bg-light p-2 rounded border">
+                                                        <small class="text-uppercase fw-bold text-muted d-block mb-2"
+                                                               style="font-size: 0.7rem;">Historial de Versiones Físicas</small>
+                                                        <div class="d-flex flex-column gap-2">
+                                                            @foreach (var version in doc.VersionesFisicas)
+                                                            {
+                                                                string badgeClass = version.Estado switch
                                                                 {
-                                                                    <button class="btn btn-warning btn-sm ms-2 shadow-sm fw-bold">
-                                                                        <i class="bi bi-pen me-1"></i> Revisar / Aprobar
-                                                                    </button>
-                                                                }
-                                                            </div>
+                                                                    "Aprobado" => "bg-success",
+                                                                    "Revision" => "bg-warning text-dark",
+                                                                    "Borrador" => "bg-secondary",
+                                                                    "Obsoleto" => "bg-danger",
+                                                                    _ => "bg-light text-dark"
+                                                                };
+
+                                                                string filaEstilo = version.RequiereMiIntervencion
+                                                                    ? "border-warning shadow-sm"
+                                                                    : "border-light";
+
+                                                                <a asp-action="VisualizarVersion" asp-route-versionId="@version.Id" asp-route-intervencion="@version.RequiereMiIntervencion"
+                                                                       class="text-decoration-none d-flex justify-content-between align-items-center p-2 rounded bg-white border hover-version @filaEstilo">
+                    
+                                                                    <div class="d-flex align-items-center">
+                                                                        <div class="small me-3">
+                                                                            <span
+                                                                            class="fw-bold text-dark">v@(version.VersionMayor).@(version.VersionMenor)</span>
+                                                                            <span class="badge @badgeClass ms-1">@version.Estado</span>
+                                                                        </div>
+                        
+                                                                        @if (version.RequiereMiIntervencion)
+                                                                        {
+                                                                            <span class="badge bg-warning text-dark animate-pulse">
+                                                                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Acción Requerida
+                                                                            </span>
+                                                                        }
+                                                                    </div>
+
+                                                                    <div class="text-muted small">
+                                                                        <i class="bi bi-chevron-right"></i>
+                                                                    </div>
+                                                                </a>
+                                                            }
                                                         </div>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
+                                                    </div>
+                                              
+                                                }
+
+
+                                                
+                                        </div>
                                 }
                             </div>
                         }
@@ -187,3 +201,8 @@
         }
     </div>
 </div>
+
+        @* SubirVersion.cshtml *@
+        @section Styles {
+            <link rel="stylesheet" href="~/css/documentos.css" asp-append-version="true" />
+        }

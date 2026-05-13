@@ -1,0 +1,373 @@
+@model NormaQ.Models.VersionesDocumento
+
+@{
+    ViewData["Title"] = $"v{Model.VersionMayor}.{Model.VersionMenor} - {Model.Documento.Nombre}";
+    bool esEditable = ViewBag.RequiereMiIntervencion == true;
+
+    string extension = System.IO.Path.GetExtension(Model.MinioIdentifier ?? "").ToLower();
+
+    // Grupos de extensiones por capacidad de previsualización
+    bool esPdf = extension == ".pdf";
+    bool esImagen = new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp" }.Contains(extension);
+    bool esTexto = new[] { ".txt", ".md", ".csv", ".log", ".json", ".xml", ".yaml", ".yml" }.Contains(extension);
+    bool esWord = new[] { ".doc", ".docx" }.Contains(extension);
+    bool esExcel = new[] { ".xls", ".xlsx" }.Contains(extension);
+    bool esCad = new[] { ".dwg", ".dxf" }.Contains(extension);
+
+    // URL inline (para el visor) vs descarga directa
+    string urlInline = Url.Action("DescargarArchivo", new { versionId = Model.Id, inline = true })!;
+    string urlDescarga = Url.Action("DescargarArchivo", new { versionId = Model.Id })!;
+
+    // Ícono e info para el visor de "no soportado"
+    string iconoCls = extension switch
+    {
+        ".docx" or ".doc" => "bi-file-earmark-word text-primary",
+        ".xlsx" or ".xls" => "bi-file-earmark-excel text-success",
+        ".dwg" or ".dxf" => "bi-boxes text-warning",
+        ".zip" or ".rar" => "bi-file-earmark-zip text-secondary",
+        _ => "bi-file-earmark-binary text-secondary"
+    };
+    string labelTipo = extension switch
+    {
+        ".docx" or ".doc" => "Documento Word",
+        ".xlsx" or ".xls" => "Hoja de cálculo Excel",
+        ".dwg" or ".dxf" => "Archivo CAD",
+        ".zip" or ".rar" => "Archivo comprimido",
+        _ => "Archivo binario"
+    };
+}
+
+<div class="container-fluid mt-4 mb-5">
+
+    @if (TempData["ErrorFirma"] != null)
+    {
+        <div class="alert alert-danger shadow-sm"><i class="bi bi-shield-x me-2"></i>@TempData["ErrorFirma"]</div>
+    }
+    @if (TempData["ErrorSistema"] != null)
+    {
+        <div class="alert alert-dark shadow-sm">@TempData["ErrorSistema"]</div>
+    }
+
+    <div class="row g-4 align-items-start">
+
+        <div class="col-lg-4 d-flex flex-column gap-3">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white p-3">
+                    <h5 class="mb-0 small text-uppercase fw-bold">Gestión de la Versión</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small d-block">Documento Lógico</label>
+                        <h6 class="fw-bold">@Model.Documento.Codigo — @Model.Documento.Nombre</h6>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="text-muted small d-block">Versión</label>
+                            <span class="badge bg-dark fs-6">v@(Model.VersionMayor).@(Model.VersionMenor)</span>
+                        </div>
+                        <div class="col-6">
+                            <label class="text-muted small d-block">Estado</label>
+                            <span class="badge bg-info text-dark fs-6">@Model.Estado</span>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    @if (esEditable)
+                    {
+                        <div class="alert alert-warning border-0 p-3 mb-4">
+                            <h6 class="fw-bold text-dark mb-1"><i class="bi bi-pen me-2"></i>Acción Pendiente</h6>
+                            <p class="small text-dark mb-0 opacity-75">Seleccione un veredicto para avanzar el flujo.</p>
+                        </div>
+
+                        <form asp-action="FirmarDocumento" method="post" id="formFirma">
+                            <input type="hidden" name="VersionId" value="@Model.Id" />
+                            <input type="hidden" id="inputAccion" name="Accion" value="" />
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Comentarios (Requerido para Rechazo):</label>
+                                <textarea name="Comentarios" class="form-control" rows="3"
+                                          placeholder="Observaciones de calidad..."></textarea>
+                            </div>
+
+                            <div class="d-flex gap-2 mb-4">
+                                <button type="button" class="btn btn-success flex-fill fw-bold"
+                                        onclick="enviarFirma('Aprobado')">
+                                    <i class="bi bi-check-circle me-1"></i> Aprobar
+                                </button>
+                                <button type="button" class="btn btn-danger flex-fill fw-bold"
+                                        onclick="enviarFirma('Rechazado')">
+                                    <i class="bi bi-x-circle me-1"></i> Rechazar
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="text-center">
+                            <span class="text-muted small d-block mb-2">— O aplique una corrección manual —</span>
+                            <button class="btn btn-outline-primary w-100 fw-bold shadow-sm" data-bs-toggle="modal"
+                                    data-bs-target="#modalEditar">
+                                <i class="bi bi-cloud-upload me-2"></i>
+                                Editar / Subir Nueva Versión (v@(Model.VersionMayor).@(Model.VersionMenor + 1))
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-light border p-3">
+                            <h6 class="fw-bold text-muted small"><i class="bi bi-eye me-2"></i>Modo Lectura</h6>
+                            <p class="small text-muted mb-0">No cuenta con privilegios o turnos pendientes de edición
+                                para este documento.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 border-top border-4 border-primary">
+                    <div class="card-body text-center">
+                        <p class="small text-muted mb-2">Archivo físico resguardado en almacenamiento seguro.</p>
+                        <a href="@urlDescarga" class="btn btn-primary w-100">
+                            <i class="bi bi-download me-2"></i>
+                            Descargar Copia Físico (@extension.ToUpper())
+                        </a>
+                    </div>
+                </div>
+
+                <a asp-action="Index" asp-route-selectedDeptId="@Model.Documento.DepartamentoId"
+                       class="btn btn-link text-muted w-100">
+                    <i class="bi bi-arrow-left"></i> Volver al Repositorio
+                </a>
+
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 h-100" style="min-height: 85vh;">
+
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                        <span class="fw-bold">
+                            <i class="bi bi-display me-2"></i>Visor Documental Integrado
+                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-light text-muted font-monospace border">
+                                @System.IO.Path.GetFileName(Model.MinioIdentifier)
+                            </span>
+                            <span class="badge bg-secondary">@extension.ToUpper()</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0 d-flex flex-column" style="overflow: hidden;">
+
+                        @* ── PDF: iframe inline ── *@
+                        @if (esPdf)
+                        {
+                            <iframe src="@urlInline" class="w-100 border-0" style="flex-grow: 1; min-height: 80vh;"
+                                    title="Visor PDF">
+                            </iframe>
+                        }
+
+                        @* ── Imagen: tag <img> directo ── *@
+                        else if (esImagen)
+                        {
+                            <div class="d-flex align-items-center justify-content-center h-100 bg-secondary bg-opacity-10 p-4"
+                                 style="min-height: 80vh; overflow: auto;">
+                                <img src="@urlInline" alt="@System.IO.Path.GetFileName(Model.MinioIdentifier)"
+                                     class="img-fluid rounded shadow" style="max-height: 78vh; object-fit: contain;" />
+                            </div>
+                        }
+
+                        @* ── Texto / Markdown / CSV / JSON / XML: carga con fetch ── *@
+                        else if (esTexto)
+                        {
+                            <div class="d-flex flex-column h-100" style="min-height: 80vh;">
+                                <div class="bg-light border-bottom px-4 py-2 d-flex justify-content-between align-items-center">
+                                    <span class="small text-muted">
+                                        <i class="bi bi-file-earmark-text me-1"></i>
+                                        Visor de texto plano
+                                    </span>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <label class="small text-muted mb-0">Tamaño fuente:</label>
+                                        <select id="selectFontSize" class="form-select form-select-sm" style="width: auto;">
+                                            <option value="12">12px</option>
+                                            <option value="14" selected>14px</option>
+                                            <option value="16">16px</option>
+                                            <option value="18">18px</option>
+                                        </select>
+                                        <button class="btn btn-sm btn-outline-secondary" id="btnWrap"
+                                                title="Activar/desactivar ajuste de línea">
+                                            <i class="bi bi-text-wrap"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="visorTexto" class="flex-grow-1 p-4 overflow-auto bg-white font-monospace"
+                                     style="white-space: pre; font-size: 14px; line-height: 1.6; min-height: 0;">
+                                    <div class="text-center text-muted py-5">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                        Cargando contenido...
+                                    </div>
+                                </div>
+                                <div class="bg-light border-top px-4 py-1">
+                                    <small class="text-muted" id="infoTexto">—</small>
+                                </div>
+                            </div>
+
+                            <script>
+                                                    (function () {
+                                                        const urlInline = '@Html.Raw(urlInline)';
+                                                        const visor = document.getElementById('visorTexto');
+                                                        const info = document.getElementById('infoTexto');
+                                                        const selFont = document.getElementById('selectFontSize');
+                                                        const btnWrap = document.getElementById('btnWrap');
+                                                        let wrapActivo = false;
+
+                                                        // Cargar texto con fetch (no descarga, no nueva pestaña)
+                                                        fetch(urlInline)
+                                                            .then(r => {
+                                                                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                                                                return r.text();
+                                                            })
+                                                            .then(texto => {
+                                                                // Escapar HTML para evitar XSS
+                                                                const escaped = texto
+                                                                    .replace(/&/g, '&amp;')
+                                                                    .replace(/</g, '&lt;')
+                                                                    .replace(/>/g, '&gt;');
+                                                                visor.innerHTML = `<code>${escaped}</code>`;
+                                                                const lineas = texto.split('\n').length;
+                                                                const chars = texto.length;
+                                                                info.textContent = `${lineas.toLocaleString()} líneas · ${chars.toLocaleString()} caracteres`;
+                                                            })
+                                                            .catch(err => {
+                                                                visor.innerHTML = `<div class="alert alert-danger m-3">
+                                                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                                                        No se pudo cargar el contenido: ${err.message}
+                                                                    </div>`;
+                                                            });
+
+                                                        // Control de tamaño de fuente
+                                                        selFont.addEventListener('change', function () {
+                                                            visor.style.fontSize = this.value + 'px';
+                                                        });
+
+                                                        // Control de ajuste de línea
+                                                        btnWrap.addEventListener('click', function () {
+                                                            wrapActivo = !wrapActivo;
+                                                            visor.style.whiteSpace = wrapActivo ? 'pre-wrap' : 'pre';
+                                                            btnWrap.classList.toggle('btn-outline-secondary', !wrapActivo);
+                                                            btnWrap.classList.toggle('btn-secondary', wrapActivo);
+                                                        });
+                                                    })();
+                            </script>
+                        }
+
+                        @* ── Otros formatos: visor elegante con ícono ── *@
+                        else
+                        {
+                            <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center p-5 bg-secondary bg-opacity-10"
+                                 style="min-height: 80vh;">
+
+                                <div class="mb-4 position-relative">
+                                    <div class="bg-white rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+                                         style="width: 120px; height: 120px; margin: 0 auto;">
+                                        <i class="bi @iconoCls" style="font-size: 3rem;"></i>
+                                    </div>
+                                    <span class="badge bg-dark position-absolute bottom-0 end-0 translate-middle-x"
+                                          style="font-size: .75rem;">
+                                        @extension.ToUpper()
+                                    </span>
+                                </div>
+
+                                <h4 class="fw-bold text-dark mb-1">@labelTipo</h4>
+                                <p class="text-muted mb-1">
+                                    <strong>@System.IO.Path.GetFileName(Model.MinioIdentifier)</strong>
+                                </p>
+                                <p class="text-muted small mb-4">
+                                    Este formato no puede previsualizarse en el navegador.
+                                    Descárgalo para abrirlo con el software correspondiente.
+                                </p>
+
+                                <a href="@urlDescarga" class="btn btn-primary btn-lg px-5 py-2 rounded-pill shadow">
+                                    <i class="bi bi-cloud-arrow-down-fill me-2"></i>
+                                    Descargar y revisar
+                                </a>
+
+                                <div class="mt-4 p-3 bg-white rounded-3 shadow-sm text-start" style="max-width: 340px;">
+                                    <p class="small fw-bold text-muted text-uppercase mb-2">Información del archivo</p>
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="text-muted">Identificador MinIO</span>
+                                        <span class="font-monospace text-truncate ms-2" style="max-width: 180px;"
+                                              title="@Model.MinioIdentifier">
+                                            @System.IO.Path.GetFileName(Model.MinioIdentifier)
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="text-muted">Versión</span>
+                                        <span class="badge bg-dark">v@(Model.VersionMayor).@(Model.VersionMenor)</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small">
+                                        <span class="text-muted">Estado</span>
+                                        <span class="badge bg-info text-dark">@Model.Estado</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-pencil-square me-2"></i>Inyectar Corrección
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <form asp-action="EditarVersion" method="post" enctype="multipart/form-data">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="VersionActualId" value="@Model.Id" />
+                        <div class="alert alert-info border-0 small">
+                            Se generará el archivo
+                            <strong>v@(Model.VersionMayor).@(Model.VersionMenor + 1)</strong>
+                            y se reiniciará el flujo de firmas.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Seleccione el archivo corregido:</label>
+                            <input type="file" name="ArchivoNuevo" class="form-control form-control-lg" required
+                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg" />
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0">
+                        <button type="button" class="btn btn-outline-secondary px-4"
+                                data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold">
+                            <i class="bi bi-cloud-upload me-2"></i>Subir y Notificar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+            function enviarFirma(decision) {
+                document.getElementById('inputAccion').value = decision;
+
+                if (decision === 'Rechazado') {
+                    const comentarios = document.querySelector('textarea[name="Comentarios"]').value;
+                    if (!comentarios.trim()) {
+                        alert('Debe justificar el rechazo en el campo de comentarios.');
+                        return;
+                    }
+                }
+
+                document.getElementById('formFirma').submit();
+            }
+        </script>
+    }

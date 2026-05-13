@@ -140,6 +140,8 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
                 t.HasCheckConstraint(
                     "CHK_Flujos_Estado",
                 "estado_firma IN ('Pendiente', 'Aprobado', 'Rechazado', 'Cancelado')");
+
+                t.HasTrigger("trg_MutarEstadoVersion");
             });
 
             entity.HasIndex(e => new { e.UsuarioId, e.EstadoFirma }, "IX_Flujos_UsuarioEstado");

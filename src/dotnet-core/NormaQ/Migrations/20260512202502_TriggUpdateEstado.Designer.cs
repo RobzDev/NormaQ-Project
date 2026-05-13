@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NormaQ.Data;
 
@@ -11,9 +12,11 @@ using NormaQ.Data;
 namespace NormaQ.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260512202502_TriggUpdateEstado")]
+    partial class TriggUpdateEstado
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -215,12 +218,8 @@ namespace NormaQ.Migrations
 
                     b.ToTable("Flujos_Aprobacion", null, t =>
                         {
-                            t.HasTrigger("trg_MutarEstadoVersion");
-
                             t.HasCheckConstraint("CHK_Flujos_Estado", "estado_firma IN ('Pendiente', 'Aprobado', 'Rechazado', 'Cancelado')");
                         });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("NormaQ.Models.NivelesDocumento", b =>

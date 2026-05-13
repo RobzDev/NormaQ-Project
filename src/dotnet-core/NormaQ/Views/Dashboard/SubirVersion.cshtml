@@ -1,64 +1,258 @@
-@model NormaQ.Models.Documento
+@model NormaQ.ViewModels.SubirVersionViewModel
 
 @{
-    ViewData["Title"] = "Nueva Versión";
+    ViewData["Title"] = "Subir Versión Física";
 }
 
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a asp-action="Index"
-                                                       asp-route-selectedDeptId="@Model.DepartamentoId">Dashboard</a></li>
-                        <li class="breadcrumb-item active">Nueva Versión</li>
-                    </ol>
-                </nav>
+            <div class="card shadow-lg border-0 rounded-lg">
 
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-success text-white p-4">
-                        <h4 class="mb-0"><i class="bi bi-cloud-arrow-up-fill me-2"></i>Preparando Nueva Versión</h4>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="alert alert-secondary border-0">
-                            <h5 class="fw-bold text-dark">Contexto del Documento Lógico:</h5>
-                            <hr />
-                            <div class="row">
-                                <div class="col-sm-4 text-muted small text-uppercase fw-bold">ID Interno:</div>
-                                <div class="col-sm-8 mb-2"><span class="badge bg-dark">@Model.Id</span></div>
+                <div class="card-header bg-success text-white p-4">
+                    <h4 class="mb-0">
+                        <i class="bi bi-cloud-arrow-up-fill me-2"></i>Inyectar Versión Física
+                    </h4>
+                    <small class="text-light opacity-75">
+                        Documento: @Model.CodigoDocumento - @Model.NombreDocumento
+                    </small>
+                </div>
 
-                                <div class="col-sm-4 text-muted small text-uppercase fw-bold">Código ISO:</div>
-                                <div class="col-sm-8 mb-2 fw-bold text-primary">@Model.Codigo</div>
+                <div class="card-body p-5">
+                    <form asp-action="SubirVersion" method="post" enctype="multipart/form-data" id="uploadForm">
+                        <input type="hidden" asp-for="DocumentoId" />
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                                <div class="col-sm-4 text-muted small text-uppercase fw-bold">Nombre:</div>
-                                <div class="col-sm-8 mb-2">@Model.Nombre</div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-primary">Archivo del Documento</label>
 
-                                <div class="col-sm-4 text-muted small text-uppercase fw-bold">Departamento:</div>
-                                <div class="col-sm-8 mb-2">@Model.Departamento?.Nombre</div>
-                            </div>
-                        </div>
+                            
+                            <div id="dropZone"
+                                 class="drop-zone drop-zone--empty border border-2 border-primary border-dashed rounded text-center p-5 position-relative"
+                                 role="button" tabindex="0"
+                                 aria-label="Zona de carga de archivos. Arrastra un archivo o haz clic para explorar.">
 
-                        <div class="text-center py-5 border border-dashed rounded mt-4">
-                            <i class="bi bi-file-earmark-pdf text-muted display-1"></i>
-                            <h4 class="mt-3">Zona de Carga (Placeholder)</h4>
-                            <p class="text-muted">Aquí implementaremos la integración con <strong>MinIO</strong> y el
-                                formulario para definir si es una versión mayor (1.0) o menor (0.1).</p>
-                        
-                                <div class="mt-4">
-                                    <button class="btn btn-secondary disabled">
-                                        <i class="bi bi-lock-fill me-1"></i> Esperando implementación de almacenamiento
+                                <input asp-for="ArchivoFisico" type="file" id="ArchivoFisico"
+                                       class="position-absolute top-0 start-0 w-100 h-100 opacity-0"
+                                       style="cursor: pointer; z-index: 2;" accept=".pdf,.doc,.docx,.xls,.xlsx" />
+
+                              
+                                <div id="dzStateEmpty">
+                                    <i class="bi bi-cloud-upload display-4 text-primary mb-3 d-block"></i>
+                                    <h5 class="fw-bold text-dark mb-1">Arrastra tu archivo aquí</h5>
+                                    <p class="text-muted small mb-0">o haz clic para explorar tu equipo</p>
+                                    <p class="text-muted small mt-2">Formatos permitidos: PDF, Word, Excel</p>
+                                </div>
+
+                               
+                                <div id="dzStateHover" class="d-none">
+                                    <i class="bi bi-box-arrow-in-down display-4 text-primary mb-3 d-block"></i>
+                                    <h5 class="fw-bold text-primary mb-1">Suelta el archivo aquí</h5>
+                                    <p class="text-muted small mb-0">Lo recibiremos enseguida</p>
+                                </div>
+
+                               
+                                <div id="dzStateReady" class="d-none">
+                                    <i class="bi bi-file-earmark-check-fill display-4 text-success mb-3 d-block"></i>
+                                    <h5 class="fw-bold text-success mb-1" id="dzFileName">archivo.pdf</h5>
+                                    <p class="text-muted small mb-1" id="dzFileSize"></p>
+                                    <button type="button" id="btnQuitarArchivo"
+                                            class="btn btn-sm btn-outline-danger mt-2"
+                                            style="z-index: 3; position: relative;">
+                                        <i class="bi bi-x-circle me-1"></i>Quitar archivo
                                     </button>
                                 </div>
+
                             </div>
+
+                            
+                            <div id="dzFormatError" class="d-none alert alert-danger py-2 px-3 mt-2 small">
+                                <i class="bi bi-exclamation-circle-fill me-1"></i>
+                                Formato no permitido. Usa PDF, Word (.doc, .docx) o Excel (.xls, .xlsx).
+                            </div>
+
+                            <span asp-validation-for="ArchivoFisico" class="text-danger small mt-1 d-block"></span>
                         </div>
-                        <div class="card-footer bg-light d-flex justify-content-between">
-                            <a asp-action="Index" asp-route-selectedDeptId="@Model.DepartamentoId"
-                                   class="btn btn-outline-secondary">
-                                Cancelar
+
+                        <div class="alert alert-warning border-0 shadow-sm mb-4">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            El sistema calculará automáticamente el número de versión (Mayor.Menor) según el historial
+                            de este documento y generará las tareas de firma pendientes.
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-5">
+                            <a asp-action="Index" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-x-circle me-2"></i>Cancelar
                             </a>
-                            <span class="text-muted small align-self-center">Preparado para @User.Identity?.Name</span>
+                            <button type="submit" class="btn btn-success px-5 fw-bold" id="btnSubmit" disabled>
+                                <i class="bi bi-check2-circle me-2"></i>Subir y Notificar a Revisores
+                            </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
+
             </div>
         </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <style>
+        .border-dashed {
+            border-style: dashed !important;
+        }
+
+        /* Transición suave en todos los cambios de estado */
+        .drop-zone {
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+            min-height: 180px;
+        }
+
+        /* Estado: drag encima */
+        .drop-zone--hover {
+            border-color: #0d6efd !important;
+            background-color: #e8f0fe !important;
+        }
+
+        /* Estado: archivo listo */
+        .drop-zone--ready {
+            border-style: solid !important;
+            border-color: #198754 !important;
+            background-color: #f0fff4 !important;
+        }
+    </style>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('ArchivoFisico');
+        const btnSubmit = document.getElementById('btnSubmit');
+        const btnQuitarArchivo = document.getElementById('btnQuitarArchivo');
+        const dzFormatError = document.getElementById('dzFormatError');
+
+        // Paneles de estado
+        const dzStateEmpty = document.getElementById('dzStateEmpty');
+        const dzStateHover = document.getElementById('dzStateHover');
+        const dzStateReady = document.getElementById('dzStateReady');
+        const dzFileName = document.getElementById('dzFileName');
+        const dzFileSize = document.getElementById('dzFileSize');
+
+        const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx'];
+
+        // ─── Helpers ────────────────────────────────────────────────
+
+        function getExtension(filename) {
+            return filename.slice(filename.lastIndexOf('.')).toLowerCase();
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        // ─── Gestión de estados visuales ────────────────────────────
+
+        function showState(state) {
+            dzStateEmpty.classList.add('d-none');
+            dzStateHover.classList.add('d-none');
+            dzStateReady.classList.add('d-none');
+            dropZone.classList.remove('drop-zone--hover', 'drop-zone--ready', 'border-primary', 'border-dashed');
+
+            if (state === 'empty') {
+                dzStateEmpty.classList.remove('d-none');
+                dropZone.classList.add('border-primary', 'border-dashed');
+            } else if (state === 'hover') {
+                dzStateHover.classList.remove('d-none');
+                dropZone.classList.add('drop-zone--hover');
+            } else if (state === 'ready') {
+                dzStateReady.classList.remove('d-none');
+                dropZone.classList.add('drop-zone--ready');
+            }
+        }
+
+        function setFile(file) {
+            if (!file) return;
+
+            const ext = getExtension(file.name);
+
+            if (!ALLOWED_EXTENSIONS.includes(ext)) {
+                dzFormatError.classList.remove('d-none');
+                showState('empty');
+                btnSubmit.disabled = true;
+                return;
+            }
+
+            dzFormatError.classList.add('d-none');
+            dzFileName.textContent = file.name;
+            dzFileSize.textContent = formatBytes(file.size);
+            showState('ready');
+            btnSubmit.disabled = false;
+        }
+
+        function clearFile() {
+            fileInput.value = '';
+            dzFormatError.classList.add('d-none');
+            showState('empty');
+            btnSubmit.disabled = true;
+        }
+
+        // ─── Eventos del input ───────────────────────────────────────
+
+        fileInput.addEventListener('change', function () {
+            if (this.files && this.files.length > 0) {
+                setFile(this.files[0]);
+            }
+        });
+
+        btnQuitarArchivo.addEventListener('click', function (e) {
+            e.stopPropagation(); // evitar que el click abra el file picker
+            clearFile();
+        });
+
+        // ─── Drag & Drop ─────────────────────────────────────────────
+
+        dropZone.addEventListener('dragover', function (e) {
+            e.preventDefault(); // CRÍTICO: sin esto el drop no funciona
+            e.stopPropagation();
+            if (!dropZone.classList.contains('drop-zone--ready')) {
+                showState('hover');
+            }
+        });
+
+        dropZone.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            // Solo volver a empty si el cursor salió realmente del dropzone
+            if (!dropZone.contains(e.relatedTarget)) {
+                if (!dropZone.classList.contains('drop-zone--ready')) {
+                    showState('empty');
+                }
+            }
+        });
+
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                // Sincronizar el file con el input nativo para que el form lo envíe
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                setFile(file);
+            }
+        });
+
+        // ─── Prevenir doble submit ────────────────────────────────────
+
+        document.getElementById('uploadForm').addEventListener('submit', function () {
+            if (fileInput.files.length > 0) {
+                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Procesando...';
+                btnSubmit.disabled = true;
+            }
+        });
+    </script>
+}
