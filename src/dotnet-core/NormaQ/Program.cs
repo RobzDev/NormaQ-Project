@@ -9,11 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-var redisConnectionString = "redis:6379"; 
-var multiplexer = ConnectionMultiplexer.Connect(redisConnectionString);
 
-// 2. Inyectar como Singleton para que todo el proyecto lo use
-builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]!)
+);
+builder.Services.AddSingleton<RedisPublisherService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

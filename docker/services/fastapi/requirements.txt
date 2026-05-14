@@ -1,0 +1,11 @@
+fastapi[all]
+uvicorn
+motor
+redis[hiredis]
+python-magic
+pymupdf
+openpyxl
+pydantic-settings
+httpx
+python-multipart
+boto3

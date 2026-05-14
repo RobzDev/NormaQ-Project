@@ -416,7 +416,7 @@ namespace NormaQ.Controllers
             var version = await _context.VersionesDocumentos.FindAsync(versionId);
             if (version == null || string.IsNullOrEmpty(version.MinioIdentifier)) return NotFound();
 
-            Console.WriteLine($"[DEBUG] Valor de miVariable: {version.MinioIdentifier}");
+            
 
             var responseStream = await _minioService.ObtenerArchivoAsync(version.MinioIdentifier);
 
@@ -459,6 +459,7 @@ namespace NormaQ.Controllers
 
             // 1. Encontrar la tarea de este usuario
             var flujoActual = await _context.FlujosAprobacions
+                .Include(f => f.Usuario)
                 .FirstOrDefaultAsync(f => f.VersionId == model.VersionId
                                        && f.UsuarioId == userId
                                        && f.EstadoFirma == "Pendiente");
@@ -483,16 +484,73 @@ namespace NormaQ.Controllers
                 flujoActual.Comentarios = model.Comentarios ?? string.Empty;
                 flujoActual.FechaFirma = DateTime.UtcNow;
 
+            
                 // NOTA: No tocamos Versiones_Documento. El Trigger 'trg_MutarEstadoVersion' 
                 // escuchará este SaveChanges y evaluará si muta de Borrador -> Revisión -> Aprobado.
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
+
+                // Recargamos la versión con toda la jerarquía necesaria para el mensaje
+                var versionData = await _context.VersionesDocumentos
+                    .AsNoTracking() // Lectura directa desde SQL, ignorando caché de EF
+                    .Include(v => v.Documento)
+                        .ThenInclude(d => d.Nivel)
+                    .Include(v => v.Documento)
+                        .ThenInclude(d => d.Norma)
+                    .Include(v => v.Documento)
+                        .ThenInclude(d => d.Departamento)
+                    .Include(v => v.CreadoPorNavigation) // Quien elaboró la versión
+                    .FirstOrDefaultAsync(v => v.Id == model.VersionId);
+
+                if (versionData != null)
+                {
+                    Console.WriteLine($"[DEBUG] Estado detectado post-trigger: {versionData.Estado}");
+
+                    if (versionData.Estado == "Aprobado")
+                    {
+                        // 3. CONSTRUCCIÓN DEL MENSAJE PARA REDIS / PYTHON
+                        // obtener signer seguro (usa la navegación ya cargada o recárgala desde DB)
+                        var signer = flujoActual.Usuario ?? await _context.Usuarios.FindAsync(flujoActual.UsuarioId);
+
+                        // owner seguro desde la versión (incluye CreadoPorNavigation como ya lo haces)
+                        var ownerName = versionData.CreadoPorNavigation?.Nombre ?? "N/A";
+                        var approvedBy = signer?.Nombre ?? "N/A";
+
+                        var approvedMsg = new DocumentApprovedMessage
+                        {
+                            DocId = versionData.Id.ToString(),
+                            DisplayName = versionData.Documento?.Nombre ?? "N/A",
+                            StoragePath = versionData.MinioIdentifier,
+                            CodigoDocumento = versionData.Documento?.Codigo ?? "N/A",
+                            NivelDocumento = versionData.Documento?.Nivel?.Nombre ?? "N/A",
+                            Norma = versionData.Documento?.Norma?.Nombre ?? "N/A",
+                            Departamento = versionData.Documento?.Departamento?.Nombre ?? "N/A",
+                            Owner = ownerName,
+                            ApprovedBy = approvedBy,
+                            ApprovedAt = DateTime.Now
+                        };
+                        // TODO: Rol 1 — Notificador (Pub/Sub)
+                        // Aquí publicarías approvedMsg en Redis usando tu IConnectionMultiplexer
+                        // await _redis.PublishAsync("doc_approved_channel", JsonSerializer.Serialize(approvedMsg));
+
+                        Console.WriteLine($"[SSO] Documento {approvedMsg.CodigoDocumento} aprobado totalmente. Listo para indexar.");
+                    }
+                    else if (versionData.Estado == "Revision")
+                    {
+                        // Lógica opcional: Notificar por correo al siguiente en la secuencia
+                    }
+
+
+
+                }
+
                 return RedirectToAction("VisualizarVersion", new { versionId = model.VersionId });
+
             }
             catch (Exception)
             {
-                await transaction.RollbackAsync();
+                //await transaction.RollbackAsync();
                 throw;
             }
         }

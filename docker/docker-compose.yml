@@ -158,6 +158,59 @@ services:
 
 
 
+# =========================
+  # FastAPI
+  # =========================
+  fastapi-service:
+    build:
+      context: .
+      dockerfile: ./services/fastapi/dockerfile
+    volumes:
+      - ../src/fastapi:/app
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=${MINIO_BUCKET}
+    ports:
+      - "8000:8000"  
+    networks:
+      - app-network
+
+  # =========================
+  # MongoDB
+  # =========================
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      retries: 5
+    networks:
+      - app-network
+
+
+
+
+
+
 
   # =========================
   # INIT MULTI-DB
@@ -171,6 +224,7 @@ volumes:
   dotnet-build:
   dotnet-bin:
   nuget-cache:
+  mongodb_data:
 
 
 networks:
