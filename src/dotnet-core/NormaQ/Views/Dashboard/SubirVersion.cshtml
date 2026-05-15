@@ -2,127 +2,202 @@
 
 @{
     ViewData["Title"] = "Subir Versión Física";
+    Layout = null; 
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-lg border-0 rounded-lg">
+<!DOCTYPE html>
+<html lang="es" class="dark antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] — NormaQ</title>
 
-                <div class="card-header bg-success text-white p-4">
-                    <h4 class="mb-0">
-                        <i class="bi bi-cloud-arrow-up-fill me-2"></i>Inyectar Versión Física
-                    </h4>
-                    <small class="text-light opacity-75">
-                        Documento: @Model.CodigoDocumento - @Model.NombreDocumento
-                    </small>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'bounce-soft': 'bounceSoft 2s infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px) scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                        },
+                        bounceSoft: {
+                            '0%, 100%': { transform: 'translateY(-5%)' },
+                            '50%': { transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+
+        function toggleTheme(event) {
+            const html = document.documentElement;
+            if (!document.startViewTransition) { html.classList.toggle('dark'); return; }
+            const x = event?.clientX ?? window.innerWidth / 2;
+            const y = event?.clientY ?? window.innerHeight / 2;
+            const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+            const transition = document.startViewTransition(() => { html.classList.toggle('dark'); });
+            transition.ready.then(() => {
+                document.documentElement.animate(
+                    { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+                    { duration: 600, easing: 'cubic-bezier(0.4,0,0.2,1)', pseudoElement: '::view-transition-new(root)' }
+                );
+            });
+        }
+    </script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            overflow: hidden; width: 100vw; height: 100vh;
+            background-color: #030305; transition: background-color 0.5s ease;
+        }
+        html:not(.dark) body { background-color: #f1f5f9; }
+        ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+        ::view-transition-old(root) { z-index: 1; } ::view-transition-new(root) { z-index: 9999; }
+        
+        .val-error { color: #ef4444; font-size: 11px; margin-top: 6px; display: block; font-weight: 700; }
+    </style>
+</head>
+<body class="flex items-center justify-center relative selection:bg-indigo-500 selection:text-white">
+
+    <canvas id="particles" class="fixed inset-0 z-0 pointer-events-none"></canvas>
+    
+    <div class="fixed top-[-10%] left-[-5%] w-[500px] h-[500px] bg-emerald-600/20 rounded-full blur-[120px] pointer-events-none z-0 hidden dark:block"></div>
+    <div class="fixed bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none z-0 hidden dark:block"></div>
+    <div class="fixed top-[20%] right-[10%] w-[300px] h-[300px] bg-emerald-400/20 rounded-full blur-[100px] pointer-events-none z-0 block dark:hidden"></div>
+
+    <div class="w-full max-w-2xl z-10 relative px-4 sm:px-6 animate-fade-in-up">
+        
+        <div class="bg-white/70 dark:bg-[#0a0a0f]/80 backdrop-blur-2xl border border-white/40 dark:border-white/10 rounded-[28px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden ring-1 ring-white/50 dark:ring-white/5">
+            
+            <div class="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 dark:from-emerald-900 dark:via-emerald-800 dark:to-[#0f1a15] p-6 sm:p-8 text-white flex justify-between items-center relative overflow-hidden">
+                <div class="absolute right-0 top-0 w-[400px] h-[400px] bg-white/10 rounded-full blur-[80px] transform translate-x-1/3 -translate-y-1/2"></div>
+                
+                <div class="relative z-10 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-inner">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    </div>
+                    <div>
+                        <h2 class="font-display text-2xl font-bold tracking-tight">Inyectar Versión Física</h2>
+                        <p class="text-emerald-100 text-xs font-medium mt-1">
+                            Documento: <strong class="text-white bg-white/10 px-2 py-0.5 rounded font-mono">@Model.CodigoDocumento</strong> - @Model.NombreDocumento
+                        </p>
+                    </div>
                 </div>
+                
+                <div class="relative z-10 flex items-center gap-3">
+                    <button onclick="toggleTheme(event)" class="w-10 h-10 rounded-full bg-black/20 hover:bg-black/40 border border-white/10 flex items-center justify-center transition-all hover:scale-105">
+                        <svg class="w-4 h-4 text-white block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        <svg class="w-4 h-4 text-amber-300 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    </button>
+                    <a asp-controller="Home" asp-action="Index" class="w-10 h-10 rounded-full bg-white/10 hover:bg-red-500 hover:text-white hover:border-red-500 border border-white/20 flex items-center justify-center transition-all hover:scale-105 text-white/80">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </a>
+                </div>
+            </div>
 
-                <div class="card-body p-5">
-                    <form asp-action="SubirVersion" method="post" enctype="multipart/form-data" id="uploadForm">
-                        <input type="hidden" asp-for="DocumentoId" />
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <div class="p-8 sm:p-10">
+                <form asp-action="SubirVersion" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <input type="hidden" asp-for="DocumentoId" />
+                    
+                    <div asp-validation-summary="ModelOnly" class="text-red-500 text-sm font-bold mb-6 bg-red-50 dark:bg-red-500/10 p-4 rounded-xl border border-red-200 dark:border-red-500/20 hidden" id="valSummary"></div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-primary">Archivo del Documento</label>
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3">Archivo del Documento</label>
 
+                        <div id="dropZone" class="relative border-2 border-dashed border-slate-300 dark:border-white/20 bg-slate-50/50 dark:bg-white/5 rounded-2xl p-10 text-center transition-all duration-300 flex flex-col items-center justify-center overflow-hidden min-h-[220px]" role="button" tabindex="0">
                             
-                            <div id="dropZone"
-                                 class="drop-zone drop-zone--empty border border-2 border-primary border-dashed rounded text-center p-5 position-relative"
-                                 role="button" tabindex="0"
-                                 aria-label="Zona de carga de archivos. Arrastra un archivo o haz clic para explorar.">
+                            <input asp-for="ArchivoFisico" type="file" id="ArchivoFisico" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".pdf,.doc,.docx,.xls,.xlsx" />
 
-                                <input asp-for="ArchivoFisico" type="file" id="ArchivoFisico"
-                                       class="position-absolute top-0 start-0 w-100 h-100 opacity-0"
-                                       style="cursor: pointer; z-index: 2;" accept=".pdf,.doc,.docx,.xls,.xlsx" />
-
-                              
-                                <div id="dzStateEmpty">
-                                    <i class="bi bi-cloud-upload display-4 text-primary mb-3 d-block"></i>
-                                    <h5 class="fw-bold text-dark mb-1">Arrastra tu archivo aquí</h5>
-                                    <p class="text-muted small mb-0">o haz clic para explorar tu equipo</p>
-                                    <p class="text-muted small mt-2">Formatos permitidos: PDF, Word, Excel</p>
+                            <div id="dzStateEmpty" class="pointer-events-none">
+                                <div class="w-16 h-16 bg-white dark:bg-black/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-200 dark:border-white/5 text-emerald-500">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                                 </div>
-
-                               
-                                <div id="dzStateHover" class="d-none">
-                                    <i class="bi bi-box-arrow-in-down display-4 text-primary mb-3 d-block"></i>
-                                    <h5 class="fw-bold text-primary mb-1">Suelta el archivo aquí</h5>
-                                    <p class="text-muted small mb-0">Lo recibiremos enseguida</p>
+                                <h5 class="text-sm font-bold text-slate-800 dark:text-white mb-1">Arrastra tu archivo aquí</h5>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">o haz clic para explorar tu equipo</p>
+                                <div class="mt-4 flex items-center justify-center gap-2">
+                                    <span class="px-2 py-1 bg-slate-200 dark:bg-white/10 rounded text-[9px] font-bold text-slate-600 dark:text-slate-300">PDF</span>
+                                    <span class="px-2 py-1 bg-slate-200 dark:bg-white/10 rounded text-[9px] font-bold text-slate-600 dark:text-slate-300">DOCX</span>
+                                    <span class="px-2 py-1 bg-slate-200 dark:bg-white/10 rounded text-[9px] font-bold text-slate-600 dark:text-slate-300">XLSX</span>
                                 </div>
+                            </div>
 
-                               
-                                <div id="dzStateReady" class="d-none">
-                                    <i class="bi bi-file-earmark-check-fill display-4 text-success mb-3 d-block"></i>
-                                    <h5 class="fw-bold text-success mb-1" id="dzFileName">archivo.pdf</h5>
-                                    <p class="text-muted small mb-1" id="dzFileSize"></p>
-                                    <button type="button" id="btnQuitarArchivo"
-                                            class="btn btn-sm btn-outline-danger mt-2"
-                                            style="z-index: 3; position: relative;">
-                                        <i class="bi bi-x-circle me-1"></i>Quitar archivo
+                            <div id="dzStateHover" class="hidden pointer-events-none">
+                                <div class="w-16 h-16 bg-indigo-100 dark:bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 dark:text-indigo-400 animate-bounce-soft">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                </div>
+                                <h5 class="text-sm font-bold text-indigo-600 dark:text-indigo-400 mb-1">¡Suelta el archivo aquí!</h5>
+                                <p class="text-xs text-indigo-500 dark:text-indigo-300 opacity-80">Lo procesaremos enseguida</p>
+                            </div>
+
+                            <div id="dzStateReady" class="hidden relative z-20 w-full">
+                                <div class="bg-white/80 dark:bg-black/40 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-4 flex items-center justify-between w-full max-w-md mx-auto backdrop-blur-sm">
+                                    <div class="flex items-center gap-4 overflow-hidden">
+                                        <div class="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h6v6h6v10H6z"/><path d="M10.2 16.2l-2.7-2.7 1.4-1.4 1.3 1.3 3.3-3.3 1.4 1.4z"/></svg>
+                                        </div>
+                                        <div class="text-left overflow-hidden">
+                                            <h5 id="dzFileName" class="text-sm font-bold text-slate-800 dark:text-white truncate">archivo.pdf</h5>
+                                            <p id="dzFileSize" class="text-xs text-slate-500 font-mono mt-0.5">0 KB</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="btnQuitarArchivo" class="w-8 h-8 rounded-full bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-500 flex items-center justify-center transition-colors shrink-0 tooltip" title="Quitar archivo">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                                     </button>
                                 </div>
-
                             </div>
 
-                            
-                            <div id="dzFormatError" class="d-none alert alert-danger py-2 px-3 mt-2 small">
-                                <i class="bi bi-exclamation-circle-fill me-1"></i>
-                                Formato no permitido. Usa PDF, Word (.doc, .docx) o Excel (.xls, .xlsx).
-                            </div>
-
-                            <span asp-validation-for="ArchivoFisico" class="text-danger small mt-1 d-block"></span>
                         </div>
 
-                        <div class="alert alert-warning border-0 shadow-sm mb-4">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                            El sistema calculará automáticamente el número de versión (Mayor.Menor) según el historial
-                            de este documento y generará las tareas de firma pendientes.
+                        <div id="dzFormatError" class="hidden mt-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-3 rounded-lg flex items-center gap-3 animate-fade-in-up">
+                            <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <p class="text-xs text-red-800 dark:text-red-300 font-bold">Formato no permitido. Usa PDF, Word o Excel.</p>
                         </div>
+                        <span asp-validation-for="ArchivoFisico" class="val-error"></span>
+                    </div>
 
-                        <div class="d-flex justify-content-between mt-5">
-                            <a asp-action="Index" class="btn btn-outline-secondary px-4">
-                                <i class="bi bi-x-circle me-2"></i>Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-success px-5 fw-bold" id="btnSubmit" disabled>
-                                <i class="bi bi-check2-circle me-2"></i>Subir y Notificar a Revisores
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-4 rounded-xl mb-8 flex items-start gap-3">
+                        <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p class="text-xs text-amber-800 dark:text-amber-300 font-medium">El sistema calculará automáticamente el número de versión (Mayor.Menor) según el historial de este documento y generará las notificaciones pendientes.</p>
+                    </div>
 
+                    <div class="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-white/10">
+                        <a asp-action="Index" class="text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-bold text-sm transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg> Cancelar
+                        </a>
+                        
+                        <button type="submit" id="btnSubmit" disabled class="bg-emerald-500 hover:bg-emerald-400 text-white px-6 sm:px-8 py-3 rounded-xl text-sm font-bold shadow-[0_8px_20px_-6px_rgba(16,185,129,0.5)] transition-all hover:-translate-y-1 flex items-center gap-3 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed disabled:shadow-none">
+                            <span id="btnText" class="flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Subir y Notificar
+                            </span>
+                            <svg id="btnSpinner" class="hidden animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                </form>
             </div>
         </div>
     </div>
-</div>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-
-    <style>
-        .border-dashed {
-            border-style: dashed !important;
-        }
-
-        /* Transición suave en todos los cambios de estado */
-        .drop-zone {
-            transition: border-color 0.2s ease, background-color 0.2s ease;
-            min-height: 180px;
-        }
-
-        /* Estado: drag encima */
-        .drop-zone--hover {
-            border-color: #0d6efd !important;
-            background-color: #e8f0fe !important;
-        }
-
-        /* Estado: archivo listo */
-        .drop-zone--ready {
-            border-style: solid !important;
-            border-color: #198754 !important;
-            background-color: #f0fff4 !important;
-        }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
 
     <script>
         const dropZone = document.getElementById('dropZone');
@@ -140,53 +215,45 @@
 
         const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx'];
 
-        // ─── Helpers ────────────────────────────────────────────────
-
-        function getExtension(filename) {
-            return filename.slice(filename.lastIndexOf('.')).toLowerCase();
-        }
-
+        function getExtension(filename) { return filename.slice(filename.lastIndexOf('.')).toLowerCase(); }
         function formatBytes(bytes) {
             if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const k = 1024; const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
-        // ─── Gestión de estados visuales ────────────────────────────
-
+        // --- Gestión de Clases Tailwind ---
         function showState(state) {
-            dzStateEmpty.classList.add('d-none');
-            dzStateHover.classList.add('d-none');
-            dzStateReady.classList.add('d-none');
-            dropZone.classList.remove('drop-zone--hover', 'drop-zone--ready', 'border-primary', 'border-dashed');
+            dzStateEmpty.classList.add('hidden');
+            dzStateHover.classList.add('hidden');
+            dzStateReady.classList.add('hidden');
+
+            // Resetear clases base
+            dropZone.className = 'relative border-2 rounded-2xl p-10 text-center transition-all duration-300 flex flex-col items-center justify-center overflow-hidden min-h-[220px]';
 
             if (state === 'empty') {
-                dzStateEmpty.classList.remove('d-none');
-                dropZone.classList.add('border-primary', 'border-dashed');
+                dzStateEmpty.classList.remove('hidden');
+                dropZone.classList.add('border-dashed', 'border-slate-300', 'dark:border-white/20', 'bg-slate-50/50', 'dark:bg-white/5');
             } else if (state === 'hover') {
-                dzStateHover.classList.remove('d-none');
-                dropZone.classList.add('drop-zone--hover');
+                dzStateHover.classList.remove('hidden');
+                dropZone.classList.add('border-solid', 'border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-500/10', 'shadow-[0_0_25px_rgba(99,102,241,0.2)]');
             } else if (state === 'ready') {
-                dzStateReady.classList.remove('d-none');
-                dropZone.classList.add('drop-zone--ready');
+                dzStateReady.classList.remove('hidden');
+                dropZone.classList.add('border-solid', 'border-emerald-500', 'bg-emerald-50/50', 'dark:bg-emerald-500/10', 'shadow-[0_0_25px_rgba(16,185,129,0.15)]');
             }
         }
 
         function setFile(file) {
             if (!file) return;
-
             const ext = getExtension(file.name);
-
             if (!ALLOWED_EXTENSIONS.includes(ext)) {
-                dzFormatError.classList.remove('d-none');
+                dzFormatError.classList.remove('hidden');
                 showState('empty');
                 btnSubmit.disabled = true;
                 return;
             }
-
-            dzFormatError.classList.add('d-none');
+            dzFormatError.classList.add('hidden');
             dzFileName.textContent = file.name;
             dzFileSize.textContent = formatBytes(file.size);
             showState('ready');
@@ -195,64 +262,112 @@
 
         function clearFile() {
             fileInput.value = '';
-            dzFormatError.classList.add('d-none');
+            dzFormatError.classList.add('hidden');
             showState('empty');
             btnSubmit.disabled = true;
         }
 
-        // ─── Eventos del input ───────────────────────────────────────
-
+        // --- Eventos ---
         fileInput.addEventListener('change', function () {
-            if (this.files && this.files.length > 0) {
-                setFile(this.files[0]);
-            }
+            if (this.files && this.files.length > 0) setFile(this.files[0]);
         });
 
         btnQuitarArchivo.addEventListener('click', function (e) {
-            e.stopPropagation(); // evitar que el click abra el file picker
-            clearFile();
+            e.stopPropagation(); e.preventDefault(); clearFile();
         });
 
-        // ─── Drag & Drop ─────────────────────────────────────────────
-
         dropZone.addEventListener('dragover', function (e) {
-            e.preventDefault(); // CRÍTICO: sin esto el drop no funciona
-            e.stopPropagation();
-            if (!dropZone.classList.contains('drop-zone--ready')) {
-                showState('hover');
-            }
+            e.preventDefault(); e.stopPropagation();
+            if (!dzStateReady.classList.contains('hidden') === false) { showState('hover'); }
         });
 
         dropZone.addEventListener('dragleave', function (e) {
-            e.preventDefault();
-            // Solo volver a empty si el cursor salió realmente del dropzone
-            if (!dropZone.contains(e.relatedTarget)) {
-                if (!dropZone.classList.contains('drop-zone--ready')) {
-                    showState('empty');
-                }
+            e.preventDefault(); e.stopPropagation();
+            if (!dropZone.contains(e.relatedTarget) && !dzStateReady.classList.contains('hidden') === false) {
+                showState('empty');
             }
         });
 
         dropZone.addEventListener('drop', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
             const file = e.dataTransfer.files[0];
             if (file) {
-                // Sincronizar el file con el input nativo para que el form lo envíe
-                const dt = new DataTransfer();
-                dt.items.add(file);
+                const dt = new DataTransfer(); dt.items.add(file);
                 fileInput.files = dt.files;
                 setFile(file);
             }
         });
 
-        // ─── Prevenir doble submit ────────────────────────────────────
-
+        // Spinner al Enviar
         document.getElementById('uploadForm').addEventListener('submit', function () {
             if (fileInput.files.length > 0) {
-                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Procesando...';
+                document.getElementById('btnText').textContent = 'Procesando...';
+                document.getElementById('btnSpinner').classList.remove('hidden');
                 btnSubmit.disabled = true;
             }
         });
     </script>
-}
+
+    <script>
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let W, H, particles = [];
+        let mouse = { x: null, y: null, radius: 150 };
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; init(); }
+        window.addEventListener('resize', resize);
+        
+        function init() {
+            particles = [];
+            const count = Math.floor((W * H) / 9000); 
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * W, y: Math.random() * H,
+                    r: Math.random() * 2 + 0.5,
+                    vx: (Math.random() - .5) * 0.4, vy: (Math.random() - .5) * 0.4,
+                    opacity: Math.random() * 0.5 + 0.2
+                });
+            }
+        }
+        resize();
+
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
+            const isDark = document.documentElement.classList.contains('dark');
+            const col = isDark ? '16, 185, 129' : '5, 150, 105'; // Partículas esmeraldas para esta vista
+            
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+                if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+
+                if(mouse.x != null) {
+                    let dx = mouse.x - p.x; let dy = mouse.y - p.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if(dist < mouse.radius) { p.x -= (dx/dist)*2; p.y -= (dy/dist)*2; }
+                }
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                let op = isDark ? p.opacity : p.opacity + 0.2;
+                ctx.fillStyle = `rgba(${col}, ${op})`; ctx.fill();
+            });
+
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 120) {
+                        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y);
+                        let lineOp = isDark ? 0.15 : 0.25;
+                        ctx.strokeStyle = `rgba(${col}, ${lineOp * (1 - dist / 120)})`;
+                        ctx.lineWidth = 1; ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+</body>
+</html>
