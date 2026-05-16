@@ -1,0 +1,45 @@
+# ====================================================================
+# .NET (C# - NormaQ)
+# ====================================================================
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+*.userprefs
+appsettings.Development.json
+
+# ====================================================================
+# PYTHON (FastAPI)
+# ====================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+# ENV/
+# .env
+
+# ====================================================================
+# PHP (Laravel)
+# ====================================================================
+src/php-app/vendor/
+src/php-app/bootstrap/cache/
+src/php-app/public/storage
+src/php-app/storage/*.key
+src/php-app/.env
+src/php-app/.env.backup
+src/php-app/.env.production
+npm-debug.log
+yarn-error.log
+
+# ====================================================================
+# IDES, HERRAMIENTAS Y SISTEMA
+# ====================================================================
+.vs/
+.idea/
+.vscode/
+.obsidian/
+.DS_Store
+Thumbs.db

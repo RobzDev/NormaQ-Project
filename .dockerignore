@@ -1,0 +1,19 @@
+# Ignorar carpetas de compilación y dependencias locales en todo el árbol
+**/bin/
+**/obj/
+**/__pycache__/
+**/vendor/
+**/.venv/
+**/venv/
+
+# # Ignorar archivos de configuración local y secretos
+# **/.env
+# **/*.user
+# **/*.suo
+
+# Ignorar entornos de desarrollo e IDEs
+**/.vs/
+**/.idea/
+**/.vscode/
+**/.git
+**/.obsidian/
