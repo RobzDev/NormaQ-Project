@@ -2,14 +2,29 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SsoController;
+use App\Http\Controllers\OperativoController;
 
 Route::get('/', function () {
-    return view('bienvenida');
+    if (session('is_authenticated')) {
+        return redirect('/operativo/dashboard');
+    }
+    return redirect()->away('http://localhost/Account/Login')
+        ->with('error', 'Debes iniciar sesión para acceder al sistema.');
 });
 
 Route::get('/hub', [SsoController::class, 'handleHub'])->name('sso.hub');
 
-// Ruta protegida por la sesión de Laravel
-Route::get('/operativo/dashboard', function () {
-    return view('operativo.dashboard');
-})->middleware('auth.custom'); // Crearemos este middleware simple luego
+Route::middleware('auth.custom')->group(function () {
+    Route::get('/operativo/dashboard', [OperativoController::class, 'index']);
+    Route::get('/operativo/buscar', [OperativoController::class, 'buscar']);
+    Route::get('/operativo/documento/{storage_path}', [OperativoController::class, 'preview'])
+        ->where('storage_path', '.*');
+});
+
+Route::post('/operativo/logout', function () {
+    Session::flush();
+    return redirect()->away('http://localhost/Account/Login');
+})->name('operativo.logout');
+
+
+Route::get('/operativo/buscar', [OperativoController::class, 'buscar']);

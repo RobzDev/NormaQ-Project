@@ -35,7 +35,7 @@ class SsoController extends Controller
         Session::put('user_id', $userData['UsuarioId']);
         Session::put('user_name', $userData['Nombre']);
         Session::put('user_email', $userData['Email']);
-        Session::put('user_depts', $userData['DepartamentosOperario']);
+        Session::put('user_dept', data_get($userData, 'DepartamentoOperario.Nombre', data_get($userData, 'DepartamentoOperario', '')));
         Session::put('is_authenticated', true);
 
         // 5. Redirección al Dashboard Operativo

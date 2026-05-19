@@ -18,15 +18,17 @@ namespace NormaQ.Controllers
     [Authorize]
     public class DashboardController : Controller
     {
-        private readonly AppDbContext _context;
+            private readonly AppDbContext _context;
         private readonly MinioService _minioService;
+        private readonly RedisPublisherService _redisPublisher;
 
-        public DashboardController(AppDbContext context, MinioService minioService)
+
+        public DashboardController(AppDbContext context, MinioService minioService, RedisPublisherService redisPublisher)
         {
             _context = context;
             _minioService = minioService;
+            _redisPublisher = redisPublisher;
         }
-
         public async Task<IActionResult> Index(int? selectedDeptId)
         {
             // 1. Ejecución: Extracción de Identidad Base
@@ -36,6 +38,9 @@ namespace NormaQ.Controllers
             int deptoBaseId = string.IsNullOrEmpty(deptoBaseIdStr) ? 0 : int.Parse(deptoBaseIdStr);
 
             int activeDeptId = selectedDeptId ?? deptoBaseId;
+
+        
+
 
             // 2. Ejecución: Resolución de la Malla de Permisos (DeptRole Claims)
             var claimsDeptRole = User.Claims.Where(c => c.Type == "DeptRole").ToList();
@@ -291,6 +296,14 @@ namespace NormaQ.Controllers
                 DepartamentoNombre = documento.Departamento.Nombre
             };
 
+            var minioIdentifier = await _context.VersionesDocumentos
+                .AsNoTracking()
+                .Where(v => v.DocumentoId == documentoId && !string.IsNullOrEmpty(v.MinioIdentifier))
+                .OrderByDescending(v => v.Id)
+                .Select(v => v.MinioIdentifier)
+                .FirstOrDefaultAsync();
+
+           
             return View(model);
         }
 
@@ -491,7 +504,7 @@ namespace NormaQ.Controllers
 
                 await transaction.CommitAsync();
 
-                // Recargamos la versión con toda la jerarquía necesaria para el mensaje
+                // Recargamos solo lo estrictamente necesario para el mensaje.
                 var versionData = await _context.VersionesDocumentos
                     .AsNoTracking() // Lectura directa desde SQL, ignorando caché de EF
                     .Include(v => v.Documento)
@@ -530,10 +543,7 @@ namespace NormaQ.Controllers
                             ApprovedBy = approvedBy,
                             ApprovedAt = DateTime.Now
                         };
-                        // TODO: Rol 1 — Notificador (Pub/Sub)
-                        // Aquí publicarías approvedMsg en Redis usando tu IConnectionMultiplexer
-                        // await _redis.PublishAsync("doc_approved_channel", JsonSerializer.Serialize(approvedMsg));
-
+                        await _redisPublisher.PublishDocumentAsync(approvedMsg);
                         Console.WriteLine($"[SSO] Documento {approvedMsg.CodigoDocumento} aprobado totalmente. Listo para indexar.");
                     }
                     else if (versionData.Estado == "Revision")

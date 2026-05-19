@@ -38,5 +38,8 @@ return [
     'normaq_sso' => [
         'validate_url' => env('NORMAQ_SSO_VALIDATE_URL', 'http://dotnet-service/api/sso/validate'),
     ],
+    'fastapi' => [
+    'url' => env('FASTAPI_URL', 'http://fastapi-service:8000'),
+    ],
 
 ];

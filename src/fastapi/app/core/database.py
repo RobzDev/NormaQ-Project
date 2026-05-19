@@ -6,7 +6,7 @@ client: AsyncIOMotorClient = None
 async def connect_mongo():
     global client
     client = AsyncIOMotorClient(settings.mongo_uri)
-    print("✅ MongoDB conectado")
+    print(f"✅ MongoDB conectado", flush=True)
 
 async def disconnect_mongo():
     global client
@@ -15,4 +15,7 @@ async def disconnect_mongo():
         print("MongoDB desconectado")
 
 def get_db():
-    return client[settings.mongo_uri.split("/")[-1].split("?")[0]]
+    if client is None:
+        raise RuntimeError("MongoDB no está conectado")
+    db_name = settings.mongo_uri.split("/")[-1].split("?")[0]
+    return client[db_name]
