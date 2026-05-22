@@ -504,17 +504,11 @@ namespace NormaQ.Controllers
 
                 await transaction.CommitAsync();
 
-                // Recargamos solo lo estrictamente necesario para el mensaje.
                 var versionData = await _context.VersionesDocumentos
-                    .AsNoTracking() // Lectura directa desde SQL, ignorando caché de EF
-                    .Include(v => v.Documento)
-                        .ThenInclude(d => d.Nivel)
-                    .Include(v => v.Documento)
-                        .ThenInclude(d => d.Norma)
-                    .Include(v => v.Documento)
-                        .ThenInclude(d => d.Departamento)
-                    .Include(v => v.CreadoPorNavigation) // Quien elaboró la versión
-                    .FirstOrDefaultAsync(v => v.Id == model.VersionId);
+                .AsNoTracking()
+                .Select(v => new { v.Id, v.Estado })
+                .FirstOrDefaultAsync(v => v.Id == model.VersionId);
+
 
                 if (versionData != null)
                 {
@@ -522,29 +516,11 @@ namespace NormaQ.Controllers
 
                     if (versionData.Estado == "Aprobado")
                     {
-                        // 3. CONSTRUCCIÓN DEL MENSAJE PARA REDIS / PYTHON
-                        // obtener signer seguro (usa la navegación ya cargada o recárgala desde DB)
-                        var signer = flujoActual.Usuario ?? await _context.Usuarios.FindAsync(flujoActual.UsuarioId);
-
-                        // owner seguro desde la versión (incluye CreadoPorNavigation como ya lo haces)
-                        var ownerName = versionData.CreadoPorNavigation?.Nombre ?? "N/A";
-                        var approvedBy = signer?.Nombre ?? "N/A";
-
-                        var approvedMsg = new DocumentApprovedMessage
+                        await _redisPublisher.PublishDocumentAsync(new DocumentApprovedMessage
                         {
-                            DocId = versionData.Id.ToString(),
-                            DisplayName = versionData.Documento?.Nombre ?? "N/A",
-                            StoragePath = versionData.MinioIdentifier,
-                            CodigoDocumento = versionData.Documento?.Codigo ?? "N/A",
-                            NivelDocumento = versionData.Documento?.Nivel?.Nombre ?? "N/A",
-                            Norma = versionData.Documento?.Norma?.Nombre ?? "N/A",
-                            Departamento = versionData.Documento?.Departamento?.Nombre ?? "N/A",
-                            Owner = ownerName,
-                            ApprovedBy = approvedBy,
-                            ApprovedAt = DateTime.Now
-                        };
-                        await _redisPublisher.PublishDocumentAsync(approvedMsg);
-                        Console.WriteLine($"[SSO] Documento {approvedMsg.CodigoDocumento} aprobado totalmente. Listo para indexar.");
+                            VersionId = versionData.Id
+                        });
+                        Console.WriteLine($"[Redis] Notificación enviada para versión {versionData.Id}");
                     }
                     else if (versionData.Estado == "Revision")
                     {

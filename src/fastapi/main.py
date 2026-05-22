@@ -6,12 +6,14 @@ from app.core.config import settings
 from app.core.database import connect_mongo, disconnect_mongo
 from app.services.document_listener import start_listener
 from app.core.indexes import create_indexes
+from app.services.sync_service import sync_check
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 LIFESPAN START", flush=True)
     await connect_mongo()  # <- aquí
     await create_indexes()
+    await sync_check()
 
     async def runner():
         try:

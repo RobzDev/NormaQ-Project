@@ -64,39 +64,31 @@
             </div>
         </div>
 
-        {{-- ÁRBOL DE DOCUMENTOS --}}
-        @php
-            $niveles = [
-                '1' => ['nombre' => 'Manual de Calidad',       'icon' => '📘', 'color' => 'blue'],
-                '2' => ['nombre' => 'Procedimiento',           'icon' => '📗', 'color' => 'green'],
-                '3' => ['nombre' => 'Instrucción de Trabajo',  'icon' => '📙', 'color' => 'orange'],
-                '4' => ['nombre' => 'Registro y Formato',      'icon' => '📄', 'color' => 'gray'],
-            ];
-        @endphp
+       
 
         <div class="space-y-4" id="arbol-documentos">
             @forelse($porNivel as $nivel => $documentos)
                 @php $info = $niveles[$nivel] ?? ['nombre' => 'Sin clasificar', 'icon' => '📁', 'color' => 'gray']; @endphp
 
-                <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                <div id="nivel-{{ $loop->index }}" class="border-t border-gray-800 divide-y divide-gray-800/50">
                     {{-- Cabecera del nivel (colapsable) --}}
-                    <button onclick="toggleNivel('nivel-{{ $nivel }}')"
+                      <button onclick="toggleNivel('lista-{{ $loop->index }}')"
                         class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-800/50 transition-colors">
                         <div class="flex items-center gap-3">
-                            <span class="text-xl">{{ $info['icon'] }}</span>
-                            <span class="font-medium text-white">{{ $info['nombre'] }}</span>
+                            <span class="text-xl">📁</span>
+                            <span class="font-medium text-white">{{ $nivel }}</span>
                             <span class="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">
                                 {{ $documentos->count() }} {{ $documentos->count() === 1 ? 'documento' : 'documentos' }}
                             </span>
                         </div>
-                        <svg id="chevron-nivel-{{ $nivel }}" class="w-4 h-4 text-gray-500 transition-transform duration-200"
+                        <svg id="chevron-lista-{{ $loop->index }}" class="w-4 h-4 text-gray-500 transition-transform duration-200"
                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </button>
 
                     {{-- Lista de documentos --}}
-                    <div id="nivel-{{ $nivel }}" class="border-t border-gray-800 divide-y divide-gray-800/50">
+                    <div id="lista-{{ $loop->index }}" class="border-t border-gray-800 divide-y divide-gray-800/50">
                         @foreach($documentos as $doc)
                             <a href="/operativo/documento/{{ $doc['storage_path'] }}"
                                 class="flex items-center justify-between px-5 py-3 hover:bg-gray-800/40 transition-colors group">
@@ -107,10 +99,12 @@
                                             d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                     </svg>
                                     <div>
-                                        <p class="text-sm text-gray-200 group-hover:text-white transition-colors">
-                                            {{ $doc['display_name'] }}
+                                         <p class="text-xs text-gray-500">
+                                            {{ $doc['metadata']['codigo'] }} · {{ $doc['metadata']['norma'] ?? '' }}
                                         </p>
-                                        <p class="text-xs text-gray-500">{{ $doc['metadata']['codigo'] }}</p>
+                                        <p class="text-sm text-gray-200 group-hover:text-white transition-colors">
+                                          {{ $doc['display_name'] }}
+                                        </p>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-4 text-xs text-gray-500">

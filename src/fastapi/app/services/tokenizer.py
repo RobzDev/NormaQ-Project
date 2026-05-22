@@ -19,12 +19,12 @@ def tokenize(*texts: str) -> list[str]:
 
 def build_search_tokens(data: dict, metadata: dict) -> list[str]:
     return tokenize(
-        data.get("CodigoDocumento", ""),
-        data.get("DisplayName", ""),
-        data.get("NivelDocumento", ""),
-        data.get("Norma", ""),
-        data.get("Departamento", ""),
-        data.get("Owner", ""),
-        data.get("ApprovedBy", ""),
+        data.get("codigoDocumento", ""),
+        data.get("nombreDocumento", ""),
+        data.get("nivel", ""),
+        data.get("normaCodigo", ""),
+        data.get("departamento", ""),
+        data.get("owner", ""),
+        data.get("approvedBy", ""),
         metadata.get("extension", ""),
     )

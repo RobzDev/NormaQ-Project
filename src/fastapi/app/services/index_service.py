@@ -6,35 +6,36 @@ async def index_document(data: dict, metadata: dict, search_tokens: list[str]):
     collection = db["documentos_indexados"]
 
     document = {
-        "doc_id": data["DocId"],
-        "display_name": data["DisplayName"],
-        "search_tokens": search_tokens,
-        "metadata": {
-            "codigo": data.get("CodigoDocumento"),
-            "nivel": data.get("NivelDocumento"),
-            "norma": data.get("Norma"),
-            "departamento": data.get("Departamento"),
-            "owner": data.get("Owner"),
-            "approved_by": data.get("ApprovedBy"),
-            "approved_at": data.get("ApprovedAt"),
-            "extension": metadata.get("extension"),
-            "mime_type": metadata.get("mime_type"),
-            "file_size_kb": metadata.get("file_size_kb"),
-            "page_count": metadata.get("page_count"),
-            "sheet_count": metadata.get("sheet_count"),
-            "line_count": metadata.get("line_count"),
-            "note": metadata.get("note"),
-            "hash_sha256": metadata.get("hash_sha256"),
-        },
-        "storage_path": data["StoragePath"],
-        "indexed_at": datetime.now(timezone.utc),
-    }
+    "doc_id": str(data["documentoId"]),
+    "version_id": str(data["versionId"]),
+    "display_name": data["nombreDocumento"],
+    "search_tokens": search_tokens,
+    "metadata": {
+        "codigo": data.get("codigoDocumento"),
+        "nivel": data.get("nivel"),
+        "norma": data.get("normaCodigo"),
+        "departamento": data.get("departamento"),
+        "owner": data.get("owner"),
+        "approved_by": data.get("approvedBy"),
+        "approved_at": data.get("approvedAt"),
+        "extension": metadata.get("extension"),
+        "mime_type": metadata.get("mime_type"),
+        "file_size_kb": metadata.get("file_size_kb"),
+        "page_count": metadata.get("page_count"),
+        "sheet_count": metadata.get("sheet_count"),
+        "line_count": metadata.get("line_count"),
+        "note": metadata.get("note"),
+        "hash_sha256": metadata.get("hash_sha256"),
+    },
+    "storage_path": data["storagePath"],
+    "indexed_at": datetime.now(timezone.utc),
+}
 
     # Upsert: si el doc_id ya existe lo actualiza, si no lo crea
     await collection.update_one(
-        {"doc_id": data["DocId"]},
+        {"doc_id": str(data["documentoId"])},  # filtro por documento maestro
         {"$set": document},
         upsert=True
     )
 
-    print(f"✅ Documento indexado en MongoDB: {data.get('CodigoDocumento')}", flush=True)
+    print(f"✅ Documento indexado en MongoDB: {data.get('codigoDocumento')}", flush=True)

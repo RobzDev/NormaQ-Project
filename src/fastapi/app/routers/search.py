@@ -5,13 +5,11 @@ router = APIRouter(prefix="/search", tags=["search"])
 
 @router.get("/autocomplete")
 async def autocomplete(
-
     q: str = Query(..., min_length=1),
     departamento: str = Query(...)
 ):
     db = get_db()
     collection = db["documentos_indexados"]
-
     q_lower = q.lower().strip()
 
     cursor = collection.find(
@@ -24,6 +22,7 @@ async def autocomplete(
             "display_name": 1,
             "metadata.codigo": 1,
             "metadata.nivel": 1,
+            "metadata.norma": 1,
             "metadata.owner": 1,
             "metadata.approved_at": 1,
             "storage_path": 1
@@ -47,6 +46,7 @@ async def get_documentos(
             "display_name": 1,
             "metadata.codigo": 1,
             "metadata.nivel": 1,
+            "metadata.norma": 1,
             "metadata.owner": 1,
             "metadata.approved_at": 1,
             "storage_path": 1

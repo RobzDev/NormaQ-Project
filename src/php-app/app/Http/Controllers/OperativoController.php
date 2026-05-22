@@ -51,7 +51,7 @@ class OperativoController extends Controller
         $documentos = $response->successful() ? $response->json('results') : [];
 
         // Agrupar por nivel para estructura virtual de carpetas
-        $porNivel = collect($documentos)->groupBy(fn($d) => $d['metadata']['nivel'] ?? 'Sin nivel');
+        $porNivel = collect($documentos)->groupBy(fn($d) => $d['metadata']['nivel'] ?? 'Sin clasificar');
 
         return view('operativo.dashboard', [
             'porNivel'     => $porNivel,

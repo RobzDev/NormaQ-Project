@@ -1,6 +1,6 @@
 using StackExchange.Redis;
 using System.Text.Json;
-using NormaQ.ViewModels;
+using NormaQ.Models;
 
 namespace NormaQ.Services;
 

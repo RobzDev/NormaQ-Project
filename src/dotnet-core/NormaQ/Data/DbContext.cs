@@ -38,7 +38,10 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
 
     public virtual DbSet<VersionesDocumento> VersionesDocumentos { get; set; }
 
-    
+
+    public DbSet<DocumentoAprobadoView> DocumentosAprobados { get; set; }
+
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -361,7 +364,64 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
                 .HasForeignKey(d => d.DocumentoId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Ver_Documento");
+
+
+
         });
+
+
+
+        modelBuilder.Entity<DocumentoAprobadoView>(entity =>
+            {
+                entity.HasNoKey();
+
+                entity.ToView("vw_Documentos_Aprobados");
+
+                entity.Property(e => e.VersionId)
+                    .HasColumnName("version_id");
+
+                entity.Property(e => e.DocumentoId)
+                    .HasColumnName("documento_id");
+
+                entity.Property(e => e.CodigoDocumento)
+                    .HasColumnName("codigo_documento");
+
+                entity.Property(e => e.NombreDocumento)
+                    .HasColumnName("nombre_documento");
+
+                entity.Property(e => e.Nivel)
+                    .HasColumnName("nivel");
+
+                entity.Property(e => e.NormaCodigo)
+                    .HasColumnName("norma_codigo");
+
+                entity.Property(e => e.NormaNombre)
+                    .HasColumnName("norma_nombre");
+
+                entity.Property(e => e.Departamento)
+                    .HasColumnName("departamento");
+
+                entity.Property(e => e.Version)
+                    .HasColumnName("version");
+
+                entity.Property(e => e.Owner)
+                    .HasColumnName("owner");
+
+                entity.Property(e => e.ApprovedBy)
+                    .HasColumnName("approved_by");
+
+                entity.Property(e => e.ApprovedAt)
+                    .HasColumnName("approved_at");
+
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnName("created_at");
+
+                entity.Property(e => e.StoragePath)
+                    .HasColumnName("storage_path");
+            });
+
+
+
 
         OnModelCreatingPartial(modelBuilder);
     }
