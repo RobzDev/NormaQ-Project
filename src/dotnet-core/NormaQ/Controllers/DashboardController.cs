@@ -625,6 +625,12 @@ namespace NormaQ.Controllers
         [HttpGet]
         public async Task<IActionResult> GestionarSolicitudes(int departamentoId)
         {
+
+
+
+            //imprimir los claims y el departamentoId para debug
+            Console.WriteLine($"[DEBUG] DepartamentoId recibido: {departamentoId}");
+            //i
             // Validación Estricta: ¿El usuario actual tiene el Rol 1 (Admin) en este DepartamentoId?
             string claimRequerido = $"{departamentoId}:1";
             if (!User.Claims.Any(c => c.Type == "DeptRole" && c.Value == claimRequerido))
