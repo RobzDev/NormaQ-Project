@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using System.Text.Json;
+using NormaQ.Services;
 
 namespace NormaQ.Controllers
 {
@@ -18,11 +19,13 @@ namespace NormaQ.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IDatabase _redis; // Representa la DB de Redis
+        private readonly IEmailService _emailService;
         // Inyección de dependencias: ASP.NET nos pasa el DbContext configurado
-        public AccountController(AppDbContext context, IConnectionMultiplexer redis)
+        public AccountController(AppDbContext context, IConnectionMultiplexer redis, IEmailService emailService)
         {
             _context = context;
             _redis = redis.GetDatabase(); // Obtenemos la conexión a la DB por defecto (0)
+            _emailService = emailService;
         }
 
         // ==========================================
@@ -35,30 +38,59 @@ namespace NormaQ.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
 
-            // 1. Ejecución: Buscar usuario
+            // ==========================================
+            // 1. CONTROL DE ACCESO: SALA DE ESPERA
+            // ==========================================
+
+            // Verificar si el correo está en la tabla de solicitudes
+            var solicitud = await _context.SolicitudesRegistros
+                .FirstOrDefaultAsync(s => s.Email == model.Email);
+
+            if (solicitud != null)
+            {
+                if (solicitud.Estado == "Pendiente")
+                {
+                    // Bloqueo 1: La cuenta aún está en evaluación por el Admin
+                    return RedirectToAction("RegistroPendiente", "Account");
+                }
+                else if (solicitud.Estado == "Rechazado")
+                {
+                    // Bloqueo 2: El Admin denegó el acceso a este usuario
+                    ModelState.AddModelError(string.Empty, "Tu solicitud de acceso fue rechazada por el administrador del departamento.");
+                    return View(model);
+                }
+                // Si es "Aprobado", el flujo simplemente continúa porque sus datos ya deberían 
+                // haber sido migrados a la tabla Usuarios.
+            }
+
+            // ==========================================
+            // 2. AUTENTICACIÓN PRINCIPAL
+            // ==========================================
+
             var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == model.Email);
 
             if (usuario != null && usuario.Activo && BCrypt.Net.BCrypt.Verify(model.Password, usuario.PasswordHash))
             {
-                // 2. Ejecución: Consultar la matriz de permisos (Roles y Departamentos del usuario)
+                // 3. Ejecución: Consultar la matriz de permisos (Roles y Departamentos del usuario)
                 var permisos = await _context.UsuariosRoles
-       .Include(ur => ur.Departamento)
-       .Where(ur => ur.UsuarioId == usuario.Id)
-       .ToListAsync();
+                    .Include(ur => ur.Departamento)
+                    .Where(ur => ur.UsuarioId == usuario.Id)
+                    .ToListAsync();
 
-                // 3. Ejecución: Construcción de Claims
+                // 4. Ejecución: Construcción de Claims
                 var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                new Claim(ClaimTypes.Name, usuario.Nombre),
-                new Claim(ClaimTypes.Email, usuario.Email),
-                // Claim principal del departamento base del usuario
-                new Claim("DepartamentoBaseId", usuario.DepartamentoId.ToString())
-            };
+        {
+            new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+            new Claim(ClaimTypes.Name, usuario.Nombre),
+            new Claim(ClaimTypes.Email, usuario.Email),
+            // Claim principal del departamento base del usuario
+            new Claim("DepartamentoBaseId", usuario.DepartamentoId.ToString())
+        };
 
                 // Inyectamos la matriz de permisos como Claims personalizados
                 // Formato del Claim: "DeptID:RolID"
@@ -67,32 +99,32 @@ namespace NormaQ.Controllers
                     claims.Add(new Claim("DeptRole", $"{permiso.DepartamentoId}:{permiso.RolId}"));
                 }
 
-                // 4. Ejecución: Creación de la Identidad y el Principal
+                // 5. Ejecución: Creación de la Identidad y el Principal
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var authProperties = new AuthenticationProperties
                 {
-                    IsPersistent = true, // Mantiene la sesión si se cierra el navegador (opcional, puedes ligarlo a un checkbox "Recuérdame")
+                    IsPersistent = true,
                     IssuedUtc = DateTimeOffset.UtcNow
                 };
 
-                // 5. Ejecución: Emisión de la Cookie
+                // 6. Ejecución: Emisión de la Cookie
                 await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
 
                 // ==========================================
-                // 6. Lógica de Redirección (C# vs PHP)
+                // 7. ENRUTAMIENTO DINÁMICO (SSO C# vs PHP)
                 // ==========================================
 
-                // Verificamos si tiene el rol de 'Operario' (ID 5 según tu DDL) en algún departamento
+                // Verificamos si tiene el rol de 'Operario' (ID 5) en algún departamento
                 bool esOperario = permisos.Any(p => p.RolId == 5);
 
                 if (esOperario)
                 {
                     string ssoToken = Guid.NewGuid().ToString();
 
-                    // EJECUCIÓN: Llenar el payload con datos reales del usuario
+                    // Llenar el payload con datos reales del usuario
                     var payload = new
                     {
                         UsuarioId = usuario.Id,
@@ -108,7 +140,7 @@ namespace NormaQ.Controllers
                             .FirstOrDefault()
                     };
 
-                    string jsonPayload = JsonSerializer.Serialize(payload);
+                    string jsonPayload = System.Text.Json.JsonSerializer.Serialize(payload);
 
                     // Guardar en Redis usando StackExchange.Redis
                     await _redis.StringSetAsync(
@@ -122,39 +154,143 @@ namespace NormaQ.Controllers
                 }
                 else
                 {
-                    // Redirección al portal administrativo de C#
-                    return RedirectToAction("Index", "Dashboard"); // Controlador que crearemos luego
+                    // Redirección al portal administrativo de C# (QualityDoc)
+                    return RedirectToAction("Index", "Dashboard");
                 }
             }
 
-            ModelState.AddModelError(string.Empty, "Credenciales inválidas.");
+            // Falla la autenticación por correo inexistente, inactivo o contraseña incorrecta
+            ModelState.AddModelError(string.Empty, "Credenciales inválidas o cuenta inexistente.");
             return View(model);
         }
         // ==========================================
         // REGISTRO (GET y POST) - Usuario INIT
         // ==========================================
         [HttpGet]
-        public IActionResult Register()
+        [HttpGet]
+        public async Task<IActionResult> Register()
         {
-            // 1. Instanciamos el ViewModel
             var model = new RegisterViewModel();
 
-            // 2. Ejecución de consulta LINQ a la tabla Departamentos
-            // Seleccionamos solo ID y Nombre para optimizar la carga
-            model.Departamentos = _context.Departamentos
-            .Where(d => d.Activo == true) // Solo departamentos activos
-            .Select(d => new SelectListItem
-            {
-                Value = d.Id.ToString(),
-                Text = d.Nombre
-            })
-            .ToList();
+            // 1. Ejecución: Carga paralela de catálogos para optimizar tiempos de respuesta
+            model.Departamentos = await _context.Departamentos
+                // .Where(d => d.Activo == true) // Descomenta si tienes esta columna
+                .Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Nombre })
+                .ToListAsync();
 
-            // 3. Pasamos el modelo ya cargado a la vista
+            model.Roles = await _context.Roles
+                .Select(r => new SelectListItem { Value = r.Id.ToString(), Text = r.Nombre })
+                .ToListAsync();
+
             return View(model);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(RegisterViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return await RecargarCatalogosYDevolverVista(model);
+            }
 
+            // ==========================================
+            // PASO A: VALIDACIÓN E INSERCIÓN EN SALA DE ESPERA
+            // ==========================================
+
+            // 1. Ejecución: Verificación de duplicidad cruzada
+            bool existeUsuario = await _context.Usuarios.AnyAsync(u => u.Email == model.Email);
+            bool existeSolicitud = await _context.SolicitudesRegistros.AnyAsync(s => s.Email == model.Email && s.Estado == "Pendiente");
+
+            if (existeUsuario || existeSolicitud)
+            {
+                ModelState.AddModelError("Email", "Este correo ya pertenece a una cuenta activa o tiene una solicitud en proceso.");
+                return await RecargarCatalogosYDevolverVista(model);
+            }
+
+            // 2. Ejecución: Encriptado e Inserción
+            var nuevaSolicitud = new SolicitudesRegistro
+            {
+                Nombre = model.Nombre,
+                Email = model.Email,
+                // BCrypt genera el salt automáticamente y hashea la contraseña
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
+                DepartamentoId = model.DepartamentoId,
+                RolId = model.RolId,
+                Estado = "Pendiente",
+                FechaSolicitud = DateTime.UtcNow
+            };
+
+            _context.SolicitudesRegistros.Add(nuevaSolicitud);
+            await _context.SaveChangesAsync(); // Se guarda en BD y genera el ID de la solicitud
+
+            // ==========================================
+            // PASO B: BÚSQUEDA DEL ADMINISTRADOR Y NOTIFICACIÓN
+            // ==========================================
+
+            // 1. Ejecución: Extraer el nombre del departamento para el cuerpo del correo
+            var depto = await _context.Departamentos.FindAsync(model.DepartamentoId);
+            string nombreDepto = depto?.Nombre ?? "Área Desconocida";
+
+            // 2. Ejecución: Búsqueda del Admin mediante Malla de Permisos
+            // Buscamos usuarios con RolId == 1 que estén asignados al mismo DepartamentoId
+            var correosAdmins = await _context.UsuariosRoles
+                .Include(ur => ur.Usuario)
+                .Where(ur => ur.DepartamentoId == model.DepartamentoId && ur.RolId == 1 && ur.Usuario.Activo)
+                .Select(ur => ur.Usuario.Email)
+                .ToListAsync();
+
+            // 3. Ejecución: Construcción del Correo
+            // Apuntamos al futuro Dashboard Administrativo donde gestionará las solicitudes
+            string linkAprobacion = Url.Action("GestionarSolicitudes", "Dashboard", new { departamentoId = model.DepartamentoId }, Request.Scheme) ?? string.Empty;
+
+            string cuerpoHtml = $@"
+                <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                    <h2 style='color: #2563eb;'>QualityDoc — Nueva Solicitud de Acceso</h2>
+                    <p>Estimado Administrador,</p>
+                    <p>Un usuario ha solicitado unirse al departamento de <strong>{nombreDepto}</strong>.</p>
+                    <table style='background: #f8f9fa; padding: 15px; border-radius: 5px; width: 100%; max-width: 500px;'>
+                        <tr><td><strong>Nombre:</strong></td><td>{nuevaSolicitud.Nombre}</td></tr>
+                        <tr><td><strong>Email:</strong></td><td>{nuevaSolicitud.Email}</td></tr>
+                    </table>
+                    <br/>
+                    <a href='{linkAprobacion}' style='background-color: #2563eb; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'>
+                        Revisar Solicitud
+                    </a>
+                    <p style='font-size: 12px; color: #888; margin-top: 30px;'>Sistema de Gestión ISO 9001 - QualityDoc Polyglot</p>
+                </div>";
+
+            // 4. Ejecución: Envío del correo vía Gmail (IEmailService)
+            if (correosAdmins.Any())
+            {
+                foreach (var emailAdmin in correosAdmins)
+                {
+                    await _emailService.EnviarCorreoAsync(emailAdmin, $"Solicitud de Registro - {nombreDepto}", cuerpoHtml);
+                }
+            }
+            else
+            {
+                // Fallback: Si el departamento no tiene Admin, se envía al administrador general/root
+                await _emailService.EnviarCorreoAsync("rcespinoza04@gmail.com", $"¡ALERTA! Solicitud Huérfana - {nombreDepto}", cuerpoHtml);
+            }
+
+            // Redirigir a la vista de éxito/espera
+            return RedirectToAction("RegistroPendiente");
+        }
+
+        // Método auxiliar para no repetir código al recargar los Selects en caso de error
+        private async Task<IActionResult> RecargarCatalogosYDevolverVista(RegisterViewModel model)
+        {
+            model.Departamentos = await _context.Departamentos.Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Nombre }).ToListAsync();
+            model.Roles = await _context.Roles.Select(r => new SelectListItem { Value = r.Id.ToString(), Text = r.Nombre }).ToListAsync();
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult RegistroPendiente()
+        {
+            return View();
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -173,42 +309,5 @@ namespace NormaQ.Controllers
 
 
 
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Register(RegisterViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            // 1. Ejecución: Verificar si el correo ya existe
-            if (_context.Usuarios.Any(u => u.Email == model.Email))
-            {
-                ModelState.AddModelError("Email", "Este correo ya está registrado.");
-                return View(model);
-            }
-
-            // 2. Ejecución: Encriptar la contraseña usando BCrypt
-            string passwordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
-
-            // 3. Ejecución: Mapear el ViewModel a la Entidad
-            var nuevoUsuario = new Usuario
-            {
-                Nombre = model.Nombre,
-                Email = model.Email,
-                PasswordHash = passwordHash,
-                DepartamentoId = model.DepartamentoId,
-                Activo = true // Por defecto activo para el usuario init
-            };
-
-            // 4. Ejecución: Guardar en la base de datos
-            _context.Usuarios.Add(nuevoUsuario);
-            _context.SaveChanges();
-
-            // Redirigir al login tras un registro exitoso
-            return RedirectToAction("Login");
-        }
     }
 }

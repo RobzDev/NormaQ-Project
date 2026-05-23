@@ -18,17 +18,19 @@ namespace NormaQ.Controllers
     [Authorize]
     public class DashboardController : Controller
     {
-            private readonly AppDbContext _context;
+        private readonly AppDbContext _context;
         private readonly MinioService _minioService;
         private readonly RedisPublisherService _redisPublisher;
+        private readonly IEmailService _emailService; // Añadido para notificar al usuario
 
-
-        public DashboardController(AppDbContext context, MinioService minioService, RedisPublisherService redisPublisher)
+        public DashboardController(AppDbContext context, MinioService minioService, RedisPublisherService redisPublisher, IEmailService emailService)
         {
             _context = context;
             _minioService = minioService;
             _redisPublisher = redisPublisher;
+            _emailService = emailService;
         }
+
         public async Task<IActionResult> Index(int? selectedDeptId)
         {
             // 1. Ejecución: Extracción de Identidad Base
@@ -614,6 +616,130 @@ namespace NormaQ.Controllers
         }
 
 
+
+
+
+        // ==========================================
+        // 1. VISTA DE LISTADO (GET)
+        // ==========================================
+        [HttpGet]
+        public async Task<IActionResult> GestionarSolicitudes(int departamentoId)
+        {
+            // Validación Estricta: ¿El usuario actual tiene el Rol 1 (Admin) en este DepartamentoId?
+            string claimRequerido = $"{departamentoId}:1";
+            if (!User.Claims.Any(c => c.Type == "DeptRole" && c.Value == claimRequerido))
+            {
+                return Forbid(); // Bloqueo a nivel backend si alguien manipula la URL
+            }
+
+            var depto = await _context.Departamentos.FindAsync(departamentoId);
+            if (depto == null) return NotFound();
+
+            var solicitudes = await _context.SolicitudesRegistros
+                .Include(s => s.Rol)
+                .Where(s => s.DepartamentoId == departamentoId && s.Estado == "Pendiente")
+                .Select(s => new SolicitudPendienteDto
+                {
+                    SolicitudId = s.Id,
+                    Nombre = s.Nombre,
+                    Email = s.Email,
+                    NombreRolSugerido = s.Rol != null ? s.Rol.Nombre : "Desconocido",
+                    FechaSolicitud = s.FechaSolicitud
+                })
+                .ToListAsync();
+
+            var model = new GestionarSolicitudesViewModel
+            {
+                DepartamentoId = departamentoId,
+                NombreDepartamento = depto.Nombre,
+                Solicitudes = solicitudes
+            };
+
+            return View(model);
+        }
+
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProcesarSolicitud(ProcesarSolicitudViewModel model)
+        {
+            if (!ModelState.IsValid) return BadRequest();
+
+            // Recuperar la solicitud con seguimiento para actualizar su estado
+            var solicitud = await _context.SolicitudesRegistros.FindAsync(model.SolicitudId);
+            if (solicitud == null || solicitud.Estado != "Pendiente") return NotFound();
+
+            // Re-validación de Seguridad: El admin debe tener permisos sobre el depto de ESTA solicitud
+            string claimRequerido = $"{solicitud.DepartamentoId}:1";
+            if (!User.Claims.Any(c => c.Type == "DeptRole" && c.Value == claimRequerido))
+            {
+                return Forbid();
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                if (model.Accion == "Aprobar")
+                {
+                    // A. Mover a la tabla de Usuarios (El password ya viene encriptado en BCrypt)
+                    var nuevoUsuario = new Usuario
+                    {
+                        Nombre = solicitud.Nombre,
+                        Email = solicitud.Email,
+                        PasswordHash = solicitud.PasswordHash,
+                        DepartamentoId = solicitud.DepartamentoId,
+                        Activo = true,
+                        CreadoEn = DateTime.UtcNow
+                    };
+
+                    _context.Usuarios.Add(nuevoUsuario);
+                    await _context.SaveChangesAsync(); // Genera el nuevoUsuario.Id
+
+                    // B. Asignar la matriz de permisos
+                    var asignacionRol = new UsuariosRole
+                    {
+                        UsuarioId = nuevoUsuario.Id,
+                        RolId = solicitud.RolId,
+                        DepartamentoId = solicitud.DepartamentoId
+                    };
+
+                    _context.UsuariosRoles.Add(asignacionRol);
+
+                    // C. Marcar la solicitud como aprobada
+                    solicitud.Estado = "Aprobado";
+
+                    // D. Notificar al usuario que su cuenta fue activada
+                    string cuerpoHtml = $@"
+                        <div style='font-family: sans-serif; padding: 20px;'>
+                            <h2 style='color: #10b981;'>¡Solicitud Aprobada!</h2>
+                            <p>Hola <strong>{solicitud.Nombre}</strong>,</p>
+                            <p>Tu acceso al sistema QualityDoc ha sido autorizado por el administrador de tu departamento.</p>
+                            <p>Ya puedes iniciar sesión con las credenciales que registraste.</p>
+                            <br/>
+                            <a href='{Request.Scheme}://{Request.Host}/Account/Login' style='background-color: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Ir al Inicio de Sesión</a>
+                        </div>";
+
+                    await _emailService.EnviarCorreoAsync(solicitud.Email, "QualityDoc — Cuenta Activada", cuerpoHtml);
+                }
+                else if (model.Accion == "Rechazar")
+                {
+                    solicitud.Estado = "Rechazado";
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                // Redirigir de vuelta a la lista de solicitudes de ese departamento
+                return RedirectToAction("GestionarSolicitudes", new { departamentoId = solicitud.DepartamentoId });
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                TempData["ErrorSistema"] = "Ocurrió un error al procesar la solicitud.";
+                return RedirectToAction("GestionarSolicitudes", new { departamentoId = solicitud.DepartamentoId });
+            }
+        }
 
 
     }

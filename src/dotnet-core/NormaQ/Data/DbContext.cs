@@ -41,6 +41,8 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
 
     public DbSet<DocumentoAprobadoView> DocumentosAprobados { get; set; }
 
+    public DbSet<SolicitudesRegistro> SolicitudesRegistros { get; set; }
+
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -419,6 +421,71 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
                 entity.Property(e => e.StoragePath)
                     .HasColumnName("storage_path");
             });
+
+
+        modelBuilder.Entity<SolicitudesRegistro>(entity =>
+        {
+            // Nombre de la tabla física en la base de datos
+            entity.ToTable("Solicitudes_Registro");
+
+            // Clave Primaria
+            entity.HasKey(e => e.Id).HasName("PK_Solicitudes_Registro");
+
+            // Mapeo de Columnas e Índices
+            entity.Property(e => e.Id)
+                .HasColumnName("id");
+
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(100)
+                .IsRequired()
+                .HasColumnName("nombre");
+
+            entity.Property(e => e.Email)
+                .HasMaxLength(150)
+                .IsUnicode(false)
+                .IsRequired()
+                .HasColumnName("email");
+
+            // Crear índice único para evitar correos duplicados en la sala de espera
+            entity.HasIndex(e => e.Email)
+                .IsUnique()
+                .HasDatabaseName("UQ_Solicitudes_Registro_Email");
+
+            entity.Property(e => e.PasswordHash)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .IsRequired()
+                .HasColumnName("password_hash");
+
+            entity.Property(e => e.DepartamentoId)
+                .HasColumnName("departamento_id");
+
+            entity.Property(e => e.RolId)
+                .HasColumnName("rol_id");
+
+            entity.Property(e => e.Estado)
+                .HasMaxLength(20)
+                .HasDefaultValue("Pendiente")
+                .HasColumnName("estado");
+
+            entity.Property(e => e.FechaSolicitud)
+                .HasDefaultValueSql("(getutcdate())")
+                .HasColumnType("datetime")
+                .HasColumnName("fecha_solicitud");
+
+            // Configuración de Relaciones (Claves Foráneas Estrictas)
+            entity.HasOne(d => d.Departamento)
+                .WithMany()
+                .HasForeignKey(d => d.DepartamentoId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Solicitudes_Departamentos");
+
+            entity.HasOne(d => d.Rol)
+                .WithMany()
+                .HasForeignKey(d => d.RolId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Solicitudes_Roles");
+        });
 
 
 

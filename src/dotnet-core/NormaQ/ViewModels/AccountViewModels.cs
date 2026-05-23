@@ -18,22 +18,26 @@ namespace NormaQ.ViewModels
     public class RegisterViewModel
     {
         [Required(ErrorMessage = "El nombre es obligatorio.")]
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El correo es obligatorio.")]
         [EmailAddress(ErrorMessage = "Correo inválido.")]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La contraseña es obligatoria.")]
         [DataType(DataType.Password)]
-        public string Password { get; set; }
+        public string Password { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Debes seleccionar un departamento.")]
+        [Required(ErrorMessage = "Debes seleccionar un departamento base.")]
         [Display(Name = "Departamento")]
         public int DepartamentoId { get; set; }
 
-        // Esta propiedad NO se llena desde el formulario (POST), 
-        // sino que la llenamos nosotros desde la BD (GET) para mostrar las opciones.
+        [Required(ErrorMessage = "Debes seleccionar un rol inicial.")]
+        [Display(Name = "Rol en el Sistema")]
+        public int RolId { get; set; }
+
+        // Catálogos para los select options
         public List<SelectListItem>? Departamentos { get; set; }
+        public List<SelectListItem>? Roles { get; set; }
     }
 }

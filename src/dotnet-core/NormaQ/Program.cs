@@ -61,6 +61,8 @@ builder.Services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(
 ));
 builder.Services.AddSingleton<MinioService>();
 
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 var app = builder.Build();
 
 var logger = app.Services.GetRequiredService<ILogger<Program>>();

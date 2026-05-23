@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NormaQ.Data;
 
@@ -11,9 +12,11 @@ using NormaQ.Data;
 namespace NormaQ.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260522234012_AddSolicitudesRegistroTable")]
+    partial class AddSolicitudesRegistroTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -440,8 +443,7 @@ namespace NormaQ.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(150)")
+                        .HasColumnType("nvarchar(150)")
                         .HasColumnName("email");
 
                     b.Property<string>("Estado")
@@ -456,7 +458,7 @@ namespace NormaQ.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasColumnName("fecha_solicitud")
-                        .HasDefaultValueSql("(getutcdate())");
+                        .HasDefaultValueSql("(getdate())");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -466,9 +468,7 @@ namespace NormaQ.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(255)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("password_hash");
 
                     b.Property<int>("RolId")
@@ -476,17 +476,17 @@ namespace NormaQ.Migrations
                         .HasColumnName("rol_id");
 
                     b.HasKey("Id")
-                        .HasName("PK_Solicitudes_Registro");
+                        .HasName("PK_SolicitudesRegistro");
 
                     b.HasIndex("DepartamentoId");
 
                     b.HasIndex("Email")
                         .IsUnique()
-                        .HasDatabaseName("UQ_Solicitudes_Registro_Email");
+                        .HasDatabaseName("UQ_SolicitudesRegistro_Email");
 
                     b.HasIndex("RolId");
 
-                    b.ToTable("Solicitudes_Registro", (string)null);
+                    b.ToTable("SolicitudesRegistro", (string)null);
                 });
 
             modelBuilder.Entity("NormaQ.Models.Usuario", b =>
@@ -738,12 +738,14 @@ namespace NormaQ.Migrations
                     b.HasOne("NormaQ.Models.Departamento", "Departamento")
                         .WithMany()
                         .HasForeignKey("DepartamentoId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("FK_Solicitudes_Departamentos");
 
                     b.HasOne("NormaQ.Models.Role", "Rol")
                         .WithMany()
                         .HasForeignKey("RolId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("FK_Solicitudes_Roles");
 

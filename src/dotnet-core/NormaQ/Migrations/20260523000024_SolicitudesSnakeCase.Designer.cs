@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NormaQ.Data;
 
@@ -11,9 +12,11 @@ using NormaQ.Data;
 namespace NormaQ.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260523000024_SolicitudesSnakeCase")]
+    partial class SolicitudesSnakeCase
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
