@@ -308,6 +308,129 @@ namespace NormaQ.Controllers
 
 
 
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            string emailKey = model.Email.ToLower().Trim();
+            string rateLimitKey = $"ratelimit:pwdreset:{emailKey}";
+
+            // 1. Ejecución: Verificación de Rate Limit en Redis
+            // Evita que un bot inunde la bandeja de correo del usuario
+            bool isInRateLimit = await _redis.KeyExistsAsync(rateLimitKey);
+            if (isInRateLimit)
+            {
+                // Se bloquea silenciosamente para el usuario, pero con un mensaje genérico
+                TempData["Mensaje"] = "Si el correo está registrado, recibirás un enlace de recuperación. Por favor revisa tu bandeja en unos minutos.";
+                return RedirectToAction("Login");
+            }
+
+            // 2. Aplicar el Rate Limit (Bloqueo por 3 minutos)
+            await _redis.StringSetAsync(rateLimitKey, "1", TimeSpan.FromMinutes(3));
+
+            // 3. Ejecución: Buscar usuario real
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == emailKey);
+
+            // Si el usuario existe y está activo, procedemos con la lógica real
+            if (usuario != null && usuario.Activo)
+            {
+                // 4. Generación del Token y guardado temporal
+                string token = Guid.NewGuid().ToString("N"); // String alfanumérico sin guiones
+                string tokenKey = $"pwdreset:token:{token}";
+
+                // Guardamos el ID del usuario ligado al token, con un TTL de 15 minutos
+                await _redis.StringSetAsync(tokenKey, usuario.Id.ToString(), TimeSpan.FromMinutes(15));
+
+                // 5. Construcción del enlace y envío de correo
+                string resetLink = Url.Action("ResetPassword", "Account", new { token = token }, Request.Scheme) ?? string.Empty;
+
+                string cuerpoHtml = $@"
+            <div style='font-family: Arial, sans-serif; padding: 20px;'>
+                <h2 style='color: #4f46e5;'>Recuperación de Contraseña</h2>
+                <p>Hola <strong>{usuario.Nombre}</strong>,</p>
+                <p>Hemos recibido una solicitud para restablecer tu contraseña en QualityDoc.</p>
+                <p>Haz clic en el siguiente enlace para crear una nueva (este enlace expira en 15 minutos):</p>
+                <br/>
+                <a href='{resetLink}' style='background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;'>Restablecer Contraseña</a>
+                <br/><br/>
+                <p style='font-size: 12px; color: #666;'>Si no solicitaste esto, puedes ignorar este correo de forma segura.</p>
+            </div>";
+
+                await _emailService.EnviarCorreoAsync(usuario.Email, "QualityDoc - Recuperación de Contraseña", cuerpoHtml);
+            }
+
+            // Respuesta genérica siempre (seguridad)
+            TempData["Mensaje"] = "Si el correo está registrado, recibirás un enlace de recuperación. Por favor revisa tu bandeja de entrada o spam.";
+            return RedirectToAction("Login");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ResetPassword(string token)
+        {
+            if (string.IsNullOrEmpty(token)) return RedirectToAction("Login");
+
+            // 1. Ejecución: Verificar que el token exista y no haya expirado en Redis
+            string tokenKey = $"pwdreset:token:{token}";
+            var userIdString = await _redis.StringGetAsync(tokenKey);
+
+            if (!userIdString.HasValue)
+            {
+                // El token no existe o ya expiró por su TTL
+                TempData["Error"] = "El enlace de recuperación es inválido o ha expirado. Por favor solicita uno nuevo.";
+                return RedirectToAction("ForgotPassword");
+            }
+
+            // Se muestra la vista pasando el token oculto
+            var model = new ResetPasswordViewModel { Token = token };
+            return View("~/Views/Account/ResetPassword.cshtml", model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View("~/Views/Account/ResetPassword.cshtml", model);
+
+            string tokenKey = $"pwdreset:token:{model.Token}";
+
+            // 2. Ejecución: Doble verificación del token al hacer POST
+            var userIdString = await _redis.StringGetAsync(tokenKey);
+
+            if (!userIdString.HasValue)
+            {
+                TempData["Error"] = "El enlace de recuperación ha expirado durante el proceso.";
+                return RedirectToAction("ForgotPassword");
+            }
+
+            int userId = int.Parse(userIdString.ToString());
+            var usuario = await _context.Usuarios.FindAsync(userId);
+
+            if (usuario != null)
+            {
+                // 3. Ejecución: Actualizar BD con la nueva contraseña hasheada
+                usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+                await _context.SaveChangesAsync();
+
+                // 4. Ejecución: Invalidar (Borrar) el token inmediatamente después de usarse
+                await _redis.KeyDeleteAsync(tokenKey);
+
+                TempData["Exito"] = "Tu contraseña ha sido actualizada correctamente. Ya puedes iniciar sesión.";
+                return RedirectToAction("Login");
+            }
+
+            return RedirectToAction("Login");
+        }
+
+
+
 
     }
 }

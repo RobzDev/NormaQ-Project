@@ -1,8 +1,7 @@
-@using NormaQ.ViewModels
 @{
     var activeNav = ViewData["ActiveNav"]?.ToString() ?? "dashboard";
-    var usuarioNombre = ViewData["UsuarioNombre"]?.ToString() ?? string.Empty;
-    var rolActivoNombre = ViewData["RolActivoNombre"]?.ToString() ?? string.Empty;
+    var usuarioNombre = ViewData["UsuarioNombre"]?.ToString() ?? "pendejo";
+    var rolActivoNombre = ViewData["RolActivoNombre"]?.ToString() ?? "string.Empty";
     var deptId = ViewData["DepartamentoActivoId"];
 }
 <!DOCTYPE html>
@@ -142,7 +141,7 @@
                     @if (rolActivoNombre == "Administrador")
                     {
                         <a href="/Dashboard/GestionarSolicitudes?departamentoId=@deptId"
-                           class="nav-item @(activeNav == "solicitudes" ? "active" : "")">
+                           class="nav-item @(activeNav == "Aprobacion de Cuentas" ? "active" : "")">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
@@ -160,13 +159,7 @@
             </nav>
 
             <div class="mb-auto">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-3">Filtros de Estado</p>
-                <div class="space-y-1">
-                    <a href="#" class="nav-item group"><span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] group-hover:scale-125 transition-transform"></span> Aprobados</a>
-                    <a href="#" class="nav-item group"><span class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] group-hover:scale-125 transition-transform"></span> En Revisión</a>
-                    <a href="#" class="nav-item group"><span class="w-2 h-2 rounded-full bg-slate-400 group-hover:scale-125 transition-transform"></span> Borradores</a>
-                    <a href="#" class="nav-item group"><span class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] group-hover:scale-125 transition-transform"></span> Obsoletos</a>
-                </div>
+                    @RenderSection("SidebarExtra", required: false)
             </div>
 
             <form asp-controller="Account" asp-action="Logout" method="post" class="mt-8">

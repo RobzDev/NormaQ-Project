@@ -1,12 +1,13 @@
 @model NormaQ.ViewModels.DashboardViewModel
 
 @{
-    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+   
     ViewData["Title"] = "Dashboard Documental";
     ViewData["ActiveNav"] = "dashboard";
     ViewData["UsuarioNombre"] = Model.UsuarioNombre;
     ViewData["RolActivoNombre"] = Model.RolActivoNombre;
     ViewData["DepartamentoActivoId"] = Model.DepartamentoActivoId; // <- ¿está esto?
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
 }
 
 <div class="flex-1 flex flex-col p-8 overflow-hidden gap-5">
@@ -114,7 +115,8 @@
                                                                 ? "bg-amber-50/50 dark:bg-amber-500/5 border-amber-300/50 dark:border-amber-500/30 shadow-[0_0_8px_rgba(245,158,11,0.05)]" 
                                                                 : "bg-white dark:bg-white/5 border-slate-200/60 dark:border-white/5";
 
-                                                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2.5 rounded-lg border @rowClasses gap-3 transition-colors">
+                                                                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2.5 rounded-lg border @rowClasses gap-3 transition-colors"
+                                                                                 data-estado="@version.Estado">
                                                                 <div class="flex items-center gap-3">
                                                                     <span class="text-xs font-bold font-mono text-slate-700 dark:text-slate-200">v@(version.VersionMayor).@(version.VersionMenor)</span>
                                                                     <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide border @badgeColors">
@@ -173,3 +175,32 @@
         </div>
     }
 }
+
+                @section SidebarExtra {
+                    <div class="mb-auto">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-3">Filtros de Estado</p>
+                        <div class="space-y-1">
+                            <a href="#" onclick="filtrar('Aprobado')" class="nav-item group"><span
+                                class="w-2 h-2 rounded-full bg-emerald-500"></span> Aprobados</a>
+                                <a href="#" onclick="filtrar('Revision')" class="nav-item group"><span
+                                    class="w-2 h-2 rounded-full bg-amber-500"></span> En Revisión</a>
+                                    <a href="#" onclick="filtrar('Borrador')" class="nav-item group"><span
+                                        class="w-2 h-2 rounded-full bg-slate-400"></span> Borradores</a>
+                                        <a href="#" onclick="filtrar('Obsoleto')" class="nav-item group"><span
+                                            class="w-2 h-2 rounded-full bg-red-500"></span> Obsoletos</a>
+                                            <a href="#" onclick="filtrar(null)" class="nav-item group"><span
+                                                class="w-2 h-2 rounded-full bg-slate-300"></span> Todos</a>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @section Scripts {
+                                        <script>
+                                            console.log("Cargando función de filtrado...");
+                                            function filtrar(estado) {
+                                                document.querySelectorAll('[data-estado]').forEach(el => {
+                                                    el.style.display = (!estado || el.dataset.estado === estado) ? '' : 'none';
+                                                });
+                                            }
+                                        </script>
+                                    }

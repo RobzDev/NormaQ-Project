@@ -2,15 +2,17 @@ using System.Collections.Generic;
 
 namespace NormaQ.ViewModels
 {
-    public class DashboardViewModel
+
+    public class LayoutViewModel
     {
         public string UsuarioNombre { get; set; } = string.Empty;
-
-        // Contexto Actual
         public int DepartamentoActivoId { get; set; }
         public string DepartamentoActivoNombre { get; set; } = string.Empty;
         public string RolActivoNombre { get; set; } = string.Empty;
+    }
 
+    public class DashboardViewModel: LayoutViewModel
+    {
         // Selector de Contextos
         public List<ContextoUsuario> ContextosDisponibles { get; set; } = new();
 

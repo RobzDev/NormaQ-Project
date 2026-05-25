@@ -5,11 +5,9 @@ using System.ComponentModel.DataAnnotations;
 namespace NormaQ.ViewModels
 {
     // ViewModel para la vista GET (Lista de solicitudes del departamento)
-    public class GestionarSolicitudesViewModel
+    public class GestionarSolicitudesViewModel: LayoutViewModel
     {
-        public int DepartamentoId { get; set; }
-        public string NombreDepartamento { get; set; } = string.Empty;
-        public List<SolicitudPendienteDto> Solicitudes { get; set; } = new();
+              public List<SolicitudPendienteDto> Solicitudes { get; set; } = new();
     }
 
     public class SolicitudPendienteDto

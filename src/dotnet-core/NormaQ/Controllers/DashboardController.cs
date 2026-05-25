@@ -638,6 +638,8 @@ namespace NormaQ.Controllers
                 return Forbid(); // Bloqueo a nivel backend si alguien manipula la URL
             }
 
+            //guardar el nombre
+
             var depto = await _context.Departamentos.FindAsync(departamentoId);
             if (depto == null) return NotFound();
 
@@ -656,8 +658,10 @@ namespace NormaQ.Controllers
 
             var model = new GestionarSolicitudesViewModel
             {
-                DepartamentoId = departamentoId,
-                NombreDepartamento = depto.Nombre,
+                UsuarioNombre = User.FindFirstValue(ClaimTypes.Name) ?? "Usuario",
+                DepartamentoActivoId = departamentoId,
+                DepartamentoActivoNombre = depto.Nombre,
+                RolActivoNombre = User.FindFirstValue("DeptRoleName") ?? "Administrador", // Asumimos que el nombre del rol también se guarda en los claims
                 Solicitudes = solicitudes
             };
 

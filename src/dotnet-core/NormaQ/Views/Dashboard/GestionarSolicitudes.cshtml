@@ -1,10 +1,15 @@
+@using Microsoft.EntityFrameworkCore.Metadata.Internal
 @model NormaQ.ViewModels.GestionarSolicitudesViewModel
 
 @{
     Layout = "~/Views/Shared/_DashboardLayout.cshtml";
     ViewData["Title"] = "Gestionar Solicitudes";
+
+    ViewData["RolActivoNombre"] = Model.RolActivoNombre;
+    ViewData["UsuarioNombre"] = Model.UsuarioNombre;
+
     // Ajusta el ActiveNav según cómo manejes el menú lateral en tu Layout
-    ViewData["ActiveNav"] = "solicitudes";
+    ViewData["ActiveNav"] = "Aprobacion de Cuentas";
 }
 
 <div class="flex-1 flex flex-col p-8 overflow-hidden gap-5">
@@ -17,7 +22,7 @@
                 de Administración</span>
                 <h2 class="font-display text-2xl font-bold mb-1">Gestión de Accesos</h2>
                 <p class="text-indigo-100 text-xs">Evaluación de solicitudes para el departamento de
-                    <strong>@Model.NombreDepartamento</strong>.</p>
+                    <strong>@Model.DepartamentoActivoNombre</strong>.</p>
                 </div>
 
                 <div class="flex gap-6 pr-4 border-l border-white/10 pl-6">
