@@ -1,0 +1,53 @@
+@{
+    ViewData["Title"] = "Acceso denegado";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var reason = ViewData["Reason"] as string;
+    var expected = ViewData["Expected"] as string;
+    var actual = ViewData["Actual"] as string;
+}
+
+<div class="max-w-3xl mx-auto px-4 py-16">
+    <div class="rounded-3xl border border-red-200 bg-white p-8 shadow-lg">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-700">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86l-7.5 13A2 2 0 004.5 20h15a2 2 0 001.71-3.14l-7.5-13a2 2 0 00-3.42 0z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Acceso denegado</h1>
+                <p class="mt-2 text-slate-600">
+                    Tu cuenta no tiene permisos para abrir esta pantalla o no pertenece al departamento solicitado.
+                </p>
+                <p class="mt-2 text-slate-500 text-sm">
+                    Si crees que esto es un error, confirma que estás usando el departamento correcto o contacta a un administrador.
+                </p>
+
+                @if (!string.IsNullOrWhiteSpace(reason))
+                {
+                    <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                        <p><strong>Diagnóstico:</strong> @reason</p>
+                        @if (!string.IsNullOrWhiteSpace(expected))
+                        {
+                            <p><strong>Claim esperado:</strong> @expected</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(actual))
+                        {
+                            <p><strong>Claims actuales:</strong> @actual</p>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="mt-8 flex flex-wrap gap-3">
+            <a asp-controller="Dashboard" asp-action="Index" class="inline-flex items-center rounded-xl bg-indigo-600 px-5 py-3 text-white font-semibold hover:bg-indigo-500">
+                Volver al dashboard
+            </a>
+            <a asp-controller="Account" asp-action="Logout" class="inline-flex items-center rounded-xl border border-slate-300 px-5 py-3 text-slate-700 font-semibold hover:bg-slate-50">
+                Cerrar sesión
+            </a>
+        </div>
+    </div>
+</div>

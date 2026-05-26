@@ -1,14 +1,10 @@
-@using NormaQ.ViewModels
-@{
-    var pageTitle = ViewData["Title"]?.ToString() ?? "Nuevo Documento Lógico";
-}
 <!DOCTYPE html>
 <html lang="es" class="dark antialiased">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@pageTitle — NormaQ</title>
+    <title>@ViewData["Title"] — NormaQ</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link
@@ -27,6 +23,7 @@
         animation: {
         'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'pulse-glow': 'pulseGlow 2s infinite',
+        'slide-in': 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         },
         keyframes: {
         fadeInUp: {
@@ -36,6 +33,10 @@
         pulseGlow: {
         '0%, 100%': { boxShadow: '0 0 15px rgba(99,102,241,0.3)' },
         '50%': { boxShadow: '0 0 25px rgba(99,102,241,0.6)' },
+        },
+        slideIn: {
+        '0%': { opacity: '0', transform: 'translateY(12px) scale(0.97)' },
+        '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         }
         }
         }
@@ -66,7 +67,9 @@
         }
 
         body {
-        min-height: 100vh;
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
         background-color: #030305;
         transition: background-color 0.5s ease;
         }
@@ -89,6 +92,7 @@
         z-index: 9999;
         }
 
+        /* ── Input base ── */
         .input-wrapper {
         position: relative;
         display: flex;
@@ -145,11 +149,11 @@
         .input-icon {
         position: absolute;
         left: 1.2rem;
-        width: 1.25rem;
-        height: 1.25rem;
         color: #94a3b8;
         transition: color 0.3s;
         pointer-events: none;
+        width: 1.25rem;
+        height: 1.25rem;
         }
 
         .input-wrapper:focus-within .input-icon {
@@ -184,13 +188,11 @@
         .dark option {
         background: #0f0f13;
         color: #f8fafc;
-        padding: 10px;
         }
 
         html:not(.dark) option {
         background: #ffffff;
         color: #1e293b;
-        padding: 10px;
         }
 
         .val-error {
@@ -201,12 +203,93 @@
         font-weight: 700;
         margin-left: 6px;
         }
+
+        /* ── Firma slot card ── */
+        .firma-slot {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(0, 0, 0, 0.07);
+        border-radius: 12px;
+        padding: 0.6rem 0.75rem;
+        animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        transition: box-shadow 0.2s;
+        }
+
+        .dark .firma-slot {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.07);
+        }
+
+        .firma-slot:hover {
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+
+        .slot-badge {
+        min-width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+        }
+
+        .btn-remove-slot {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        cursor: pointer;
+        border: none;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        transition: all 0.2s;
+        }
+
+        .btn-remove-slot:hover {
+        background: #ef4444;
+        color: white;
+        }
+
+        /* Scrollable step2 area */
+        #step2-scroll {
+        max-height: calc(100vh - 340px);
+        overflow-y: auto;
+        padding-right: 4px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+        }
+
+        #step2-scroll::-webkit-scrollbar {
+        width: 4px;
+        }
+
+        #step2-scroll::-webkit-scrollbar-track {
+        background: transparent;
+        }
+
+        #step2-scroll::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.3);
+        border-radius: 4px;
+        }
     </style>
+
+    @RenderSection("Head", required: false)
 </head>
 
 <body class="flex items-center justify-center relative selection:bg-indigo-500 selection:text-white">
+
     <canvas id="particles" class="fixed inset-0 z-0 pointer-events-none"></canvas>
 
+    {{-- Ambient blobs --}}
     <div
         class="fixed top-[-10%] left-[-5%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none z-0 hidden dark:block">
     </div>
@@ -217,74 +300,24 @@
         class="fixed top-[20%] right-[10%] w-[300px] h-[300px] bg-indigo-400/20 rounded-full blur-[100px] pointer-events-none z-0 block dark:hidden">
     </div>
 
-    <main class="w-full min-h-screen flex items-center justify-center px-4 sm:px-6 py-8">
+    <div class="w-full max-w-4xl z-10 relative px-4 sm:px-6 animate-fade-in-up perspective-1000">
         @RenderBody()
-    </main>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
     <script
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
 
-    <script>
-        function nextStep() {
-        const step1 = document.getElementById('step1');
-        const step2 = document.getElementById('step2');
-        const progressBar = document.getElementById('progressBar');
-        const indStep2 = document.getElementById('indStep2');
-        const textStep2 = document.getElementById('textStep2');
-
-        step1.classList.remove('opacity-100', 'translate-y-0');
-        step1.classList.add('opacity-0', '-translate-y-8');
-
-        setTimeout(() => {
-        step1.classList.add('hidden');
-        step2.classList.remove('hidden');
-
-        void step2.offsetWidth;
-
-        step2.classList.remove('opacity-0', 'translate-y-8');
-        step2.classList.add('opacity-100', 'translate-y-0');
-
-        progressBar.style.width = '100%';
-        indStep2.className = 'w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-[0_0_15px_rgba(79,70,229,0.5)] ring-4 ring-indigo-600/20 transition-all duration-700';
-        textStep2.className = 'text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest absolute -bottom-6 whitespace-nowrap transition-colors duration-700';
-        }, 500);
-        }
-
-        function prevStep() {
-        const step1 = document.getElementById('step1');
-        const step2 = document.getElementById('step2');
-        const progressBar = document.getElementById('progressBar');
-        const indStep2 = document.getElementById('indStep2');
-        const textStep2 = document.getElementById('textStep2');
-
-        step2.classList.remove('opacity-100', 'translate-y-0');
-        step2.classList.add('opacity-0', 'translate-y-8');
-
-        setTimeout(() => {
-        step2.classList.add('hidden');
-        step1.classList.remove('hidden');
-
-        void step1.offsetWidth;
-
-        step1.classList.remove('opacity-0', '-translate-y-8');
-        step1.classList.add('opacity-100', 'translate-y-0');
-
-        progressBar.style.width = '0%';
-        indStep2.className = 'w-10 h-10 rounded-full bg-white dark:bg-[#1a1a24] border-2 border-slate-200 dark:border-white/10 text-slate-400 flex items-center justify-center text-sm font-bold transition-all duration-700';
-        textStep2.className = 'text-[10px] font-bold text-slate-400 uppercase tracking-widest absolute -bottom-6 whitespace-nowrap transition-colors duration-700';
-        }, 500);
-        }
-    </script>
-
+    {{-- Particles engine (shared) --}}
     <script>
         const canvas = document.getElementById('particles');
         const ctx = canvas.getContext('2d');
         let W, H, particles = [];
-        let mouse = { x: null, y: null, radius: 150 };
+        const mouse = { x: null, y: null, radius: 150 };
 
-        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        window.addEventListener('mousemove', e => { mouse.x = e.x; mouse.y = e.y; });
+
         function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; init(); }
         window.addEventListener('resize', resize);
 
@@ -305,33 +338,26 @@
         function draw() {
         ctx.clearRect(0, 0, W, H);
         const isDark = document.documentElement.classList.contains('dark');
-        const col = isDark ? '99, 102, 241' : '67, 56, 202';
-
+        const col = isDark ? '99,102,241' : '67,56,202';
         particles.forEach(p => {
         p.x += p.vx; p.y += p.vy;
         if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
         if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
-
         if (mouse.x != null) {
-        let dx = mouse.x - p.x;
-        let dy = mouse.y - p.y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
+        const dx = mouse.x - p.x, dy = mouse.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < mouse.radius) { p.x -= (dx / dist) * 2; p.y -= (dy / dist) * 2; }
         }
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        let op = isDark ? p.opacity : p.opacity + 0.2;
-        ctx.fillStyle = `rgba(${col}, ${op})`; ctx.fill();
+        ctx.fillStyle = `rgba(${col},${isDark ? p.opacity : p.opacity + 0.2})`; ctx.fill();
         });
-
         for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
+        const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 120) {
         ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y);
-        let lineOp = isDark ? 0.15 : 0.25;
-        ctx.strokeStyle = `rgba(${col}, ${lineOp * (1 - dist / 120)})`;
+        ctx.strokeStyle = `rgba(${col},${(isDark ? 0.15 : 0.25) * (1 - dist / 120)})`;
         ctx.lineWidth = 1; ctx.stroke();
         }
         }

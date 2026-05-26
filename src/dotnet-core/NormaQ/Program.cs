@@ -39,7 +39,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         
         // Seguridad estricta
         options.Cookie.HttpOnly = true; // Evita que JavaScript (XSS) pueda leer la cookie
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Obliga a que solo viaje por HTTPS
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always; // En desarrollo permite HTTP local; en producción exige HTTPS
         options.Cookie.SameSite = SameSiteMode.Strict; // Previene ataques CSRF
         options.Cookie.Name = "NormaQ_AuthTicket"; // Nombre personalizado de la cookie en el navegador
     });
@@ -117,7 +119,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseRouting();
 
 app.UseAuthentication(); // ¿Quién eres? (Lee y desencripta la cookie 'NormaQ_AuthTicket')

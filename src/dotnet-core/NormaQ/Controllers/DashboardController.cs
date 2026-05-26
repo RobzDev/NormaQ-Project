@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using System.IO;
 using NormaQ.Services;
 
+
 namespace NormaQ.Controllers
 {
     [Authorize]
@@ -122,11 +123,13 @@ namespace NormaQ.Controllers
                         bool requiere = v.FlujosAprobacions
                             .Any(f =>
                                 f.UsuarioId == userId &&
-                                f.EstadoFirma == "Pendiente" &&
+                                f.EstadoFirma == "Pendiente" || f.EstadoFirma == "Cancelada" &&
                                 v.FlujosAprobacions
                                     .Where(prev => prev.Orden < f.Orden)
                                     .All(prev => prev.EstadoFirma == "Aprobado")
                             );
+
+                         Console.WriteLine($"[DEBUG] Evaluando versión {v.Id} del documento {doc.Codigo}: Requiere intervención del usuario? {requiere}");   
 
 
                         if (requiere)
@@ -170,246 +173,249 @@ namespace NormaQ.Controllers
             return View(vm);
         }
         [HttpGet]
-
         public async Task<IActionResult> CrearDocumento(int departamentoId)
-
         {
-
-            // 1. Validación Estricta de Seguridad: ¿Es Admin (Rol 1) en este departamento?
-
-            string claimRequerido = $"{departamentoId}:1";
-
-            if (!User.Claims.Any(c => c.Type == "DeptRole" && c.Value == claimRequerido))
-
+            var deptRoles = User.Claims
+                .Where(c => c.Type == "DeptRole")
+                .Select(c => c.Value)
+                .ToList();
+            
+            Console.WriteLine($"[DEBUG] === DeptRoles extraídos: {deptRoles.Count}");
+            foreach (var rol in deptRoles)
             {
-
-                return Forbid(); // Bloqueo a nivel backend
-
+                Console.WriteLine($"[DEBUG]   - Rol: {rol}");
             }
+            Console.WriteLine($"[DEBUG] === Buscando claim: {departamentoId}:1");
 
 
+
+
+            // 1. Seguridad: solo Admin (Rol 1) de este departamento
+            string claimEsperado = $"{departamentoId}:1";
+            bool tienePermisoAdminDepto = deptRoles.Contains(claimEsperado);
+            if (!tienePermisoAdminDepto)
+            {
+                string claimsActuales = deptRoles.Count > 0
+                    ? string.Join(", ", deptRoles)
+                    : "(sin claims DeptRole)";
+
+                return RedirectToAction(
+                    "AccessDenied",
+                    "Account",
+                    new
+                    {
+                        reason = "FaltaPermisoAdminDepto",
+                        expected = claimEsperado,
+                        actual = claimsActuales
+                    }
+                );
+            }
 
             var depto = await _context.Departamentos.FindAsync(departamentoId);
-
             if (depto == null) return NotFound();
 
+            // 2. Contar usuarios disponibles por rol en este departamento
+            //    (roles 2=Aprobador, 3=Revisor, 4=Elaborador)
+            var conteosPorRol = await _context.UsuariosRoles
+                .Where(ur => ur.DepartamentoId == departamentoId
+                          && new[] { 2, 3, 4 }.Contains(ur.RolId))
+                .GroupBy(ur => ur.RolId)
+                .Select(g => new { RolId = g.Key, Total = g.Count() })
+                .ToListAsync();
 
+            int Contar(int rolId) => conteosPorRol.FirstOrDefault(x => x.RolId == rolId)?.Total ?? 0;
 
-            // 2. Ejecución: Consultar solo roles que tienen personal en ESTE departamento
+            // 3. Validación temprana: si falta personal en algún rol crítico,
+            //    no tiene sentido abrir el wizard.
+            int totalElaboradores = Contar(4);
+            int totalRevisores = Contar(3);
+            int totalAprobadores = Contar(2);
 
-            var rolesConPersonal = await _context.UsuariosRoles
-
-            .Where(ur => ur.DepartamentoId == departamentoId)
-
-            .Select(ur => ur.RolId)
-
-            .Distinct()
-
-            .ToListAsync();
-
-
-
-            var model = new CrearDocumentoViewModel
-
+            if (totalElaboradores == 0 || totalRevisores == 0 || totalAprobadores == 0)
             {
-
-                DepartamentoId = departamentoId,
-
-                DepartamentoNombre = depto.Nombre,
-
-
-
-                NivelesDisponibles = await _context.NivelesDocumentos
-
-            .Select(n => new SelectListItem { Value = n.Id.ToString(), Text = $"Nivel {n.Numero} - {n.Nombre}" })
-
-            .ToListAsync(),
-
-
-
-                NormasDisponibles = await _context.Normas
-
-            .Select(n => new SelectListItem { Value = n.Id.ToString(), Text = $"{n.Codigo} - {n.Nombre}" })
-
-            .ToListAsync(),
-
-
-
-                RolesDisponibles = await _context.Roles
-
-            // Filtramos roles (2=Aprobador, 3=Revisor, 4=Elaborador) y exigimos que tengan personal
-
-            .Where(r => rolesConPersonal.Contains(r.Id) && new[] { 2, 3, 4 }.Contains(r.Id))
-
-            .Select(r => new SelectListItem { Value = r.Id.ToString(), Text = r.Nombre })
-
-            .ToListAsync()
-
-            };
-
-
-
-            return View(model);
-
-        }
-
-
-
-        [HttpPost]
-
-        [ValidateAntiForgeryToken]
-
-        public async Task<IActionResult> CrearDocumento(CrearDocumentoViewModel model)
-
-        {
-
-            // 1. Re-validación de Seguridad (Evita ataques POST directos)
-
-            if (!User.Claims.Any(c => c.Type == "DeptRole" && c.Value == $"{model.DepartamentoId}:1")) return Forbid();
-
-
-
-            if (!ModelState.IsValid)
-
-            {
-
-                // Si falla la validación, recargaríamos los catálogos aquí antes de retornar la vista
-
-                return View(model);
-
+                TempData["Error"] = "El departamento no tiene personal suficiente en todos los roles requeridos " +
+                                    "(Elaborador, Revisor, Aprobador). Asigna usuarios antes de crear un documento.";
+                return RedirectToAction(nameof(Index), new { selectedDeptId = departamentoId });
             }
 
+            var model = new CrearDocumentoViewModel
+            {
+                DepartamentoId = departamentoId,
+                DepartamentoNombre = depto.Nombre,
 
+                TotalElaboradoresDisponibles = totalElaboradores,
+                TotalRevisoresDisponibles = totalRevisores,
+                TotalAprobadoresDisponibles = totalAprobadores,
 
-            // ==========================================
+                // Listas pre-rellenadas con 1 slot cada una (valor = RolId)
+                ElaboradoresSeleccionados = new List<int> { 4 },
+                RevisoresSeleccionados = new List<int> { 3 },
+                AprobadoresSeleccionados = new List<int> { 2 },
 
-            // EJECUCIÓN: INICIO DE TRANSACCIÓN ESTRICTA
+                NivelesDisponibles = await _context.NivelesDocumentos
+                    .Select(n => new SelectListItem
+                    {
+                        Value = n.Id.ToString(),
+                        Text = $"Nivel {n.Numero} - {n.Nombre}"
+                    })
+                    .ToListAsync(),
 
-            // ==========================================
+                NormasDisponibles = await _context.Normas
+                    .Select(n => new SelectListItem
+                    {
+                        Value = n.Id.ToString(),
+                        Text = $"{n.Codigo} - {n.Nombre}"
+                    })
+                    .ToListAsync()
+            };
 
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CrearDocumento(CrearDocumentoViewModel model)
+        {
+            // 1. Re-validación de seguridad (bloquea ataques POST directos)
+            if (!User.Claims.Any(c => c.Type == "DeptRole" && c.Value == $"{model.DepartamentoId}:1"))
+                return Forbid();
+
+            // 2. Validaciones de negocio sobre la secuencia de firmas
+            //    antes de tocar la BD para dar feedback limpio al usuario.
+            var conteosPorRol = await _context.UsuariosRoles
+                .Where(ur => ur.DepartamentoId == model.DepartamentoId
+                          && new[] { 2, 3, 4 }.Contains(ur.RolId))
+                .GroupBy(ur => ur.RolId)
+                .Select(g => new { RolId = g.Key, Total = g.Count() })
+                .ToListAsync();
+
+            int Contar(int rolId) => conteosPorRol.FirstOrDefault(x => x.RolId == rolId)?.Total ?? 0;
+
+            model.TotalElaboradoresDisponibles = Contar(4);
+            model.TotalRevisoresDisponibles = Contar(3);
+            model.TotalAprobadoresDisponibles = Contar(2);
+
+            // Slots solicitados vs disponibles
+            if (model.ElaboradoresSeleccionados.Count > model.TotalElaboradoresDisponibles)
+                ModelState.AddModelError(nameof(model.ElaboradoresSeleccionados),
+                    $"Solo hay {model.TotalElaboradoresDisponibles} elaborador(es) disponible(s) en este departamento.");
+
+            if (model.RevisoresSeleccionados.Count > model.TotalRevisoresDisponibles)
+                ModelState.AddModelError(nameof(model.RevisoresSeleccionados),
+                    $"Solo hay {model.TotalRevisoresDisponibles} revisor(es) disponible(s) en este departamento.");
+
+            if (model.AprobadoresSeleccionados.Count > model.TotalAprobadoresDisponibles)
+                ModelState.AddModelError(nameof(model.AprobadoresSeleccionados),
+                    $"Solo hay {model.TotalAprobadoresDisponibles} aprobador(es) disponible(s) en este departamento.");
+
+            if (!ModelState.IsValid)
+            {
+                // Recargar catálogos antes de devolver la vista
+                model.NivelesDisponibles = await _context.NivelesDocumentos
+                    .Select(n => new SelectListItem
+                    {
+                        Value = n.Id.ToString(),
+                        Text = $"Nivel {n.Numero} - {n.Nombre}"
+                    })
+                    .ToListAsync();
+
+                model.NormasDisponibles = await _context.Normas
+                    .Select(n => new SelectListItem
+                    {
+                        Value = n.Id.ToString(),
+                        Text = $"{n.Codigo} - {n.Nombre}"
+                    })
+                    .ToListAsync();
+
+                return View(model);
+            }
+
+            // 3. Construir la secuencia de firmas con orden global estricto:
+            //    Elaboradores (1..N) → Revisores (N+1..M) → Aprobadores (M+1..Z)
+            var firmas = new List<SecuenciaFirma>();
+            byte orden = 1;
+
+            foreach (int rolId in model.ElaboradoresSeleccionados)
+                firmas.Add(new SecuenciaFirma { RolId = rolId, TipoFirma = "Elaboró", Orden = orden++ });
+
+            foreach (int rolId in model.RevisoresSeleccionados)
+                firmas.Add(new SecuenciaFirma { RolId = rolId, TipoFirma = "Revisó", Orden = orden++ });
+
+            foreach (int rolId in model.AprobadoresSeleccionados)
+                firmas.Add(new SecuenciaFirma { RolId = rolId, TipoFirma = "Aprobó", Orden = orden++ });
+
+            // 4. Transacción estricta
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
-
-
             try
-
             {
-
-                // 2. Generación Inteligente del Código de Documento
-
+                // 4a. Generar código del documento
                 var depto = await _context.Departamentos.FindAsync(model.DepartamentoId);
-
                 var nivel = await _context.NivelesDocumentos.FindAsync(model.NivelId);
 
+                string prefijoNivel = nivel!.Numero switch
+                {
+                    1 => "MC",
+                    2 => "PR",
+                    3 => "IT",
+                    4 => "RG",
+                    _ => "DOC"
+                };
 
-
-                // Mapeo de prefijos
-
-                string prefijoNivel = nivel!.Numero switch { 1 => "MC", 2 => "PR", 3 => "IT", 4 => "RG", _ => "DOC" };
-
-
-
-                // Siglas del departamento (Primeras 3 letras mayúsculas)
-
-                string siglasDepto = depto!.Nombre.Length >= 3 ? depto.Nombre.Substring(0, 3).ToUpper() : depto.Nombre.ToUpper();
-
-
-
-                // Cálculo del Secuencial
+                string siglasDepto = depto!.Nombre.Length >= 3
+                    ? depto.Nombre[..3].ToUpper()
+                    : depto.Nombre.ToUpper();
 
                 int conteoExistentes = await _context.Documentos
+                    .CountAsync(d => d.DepartamentoId == model.DepartamentoId
+                                  && d.NivelId == model.NivelId);
 
-                .CountAsync(d => d.DepartamentoId == model.DepartamentoId && d.NivelId == model.NivelId);
-
-                string secuencial = (conteoExistentes + 1).ToString("D2"); // Formato 01, 02, etc.
-
-
-
-                string codigoGenerado = $"{prefijoNivel}-{siglasDepto}-{secuencial}";
-
-
+                string codigoGenerado = $"{prefijoNivel}-{siglasDepto}-{(conteoExistentes + 1):D2}";
 
                 int usuarioCreadorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-
-
-                // 3. Inserción Capa 1: Documento Maestro
-
+                // 4b. Insertar Documento maestro
                 var nuevoDocumento = new Documento
-
                 {
-
                     Codigo = codigoGenerado,
-
                     Nombre = model.Nombre,
-
                     NivelId = model.NivelId,
-
                     NormaId = model.NormaId,
-
                     DepartamentoId = model.DepartamentoId,
-
                     CreadoPor = usuarioCreadorId
-
-
                 };
 
-
-
                 _context.Documentos.Add(nuevoDocumento);
+                await _context.SaveChangesAsync(); // Genera el Id del documento
 
-                await _context.SaveChangesAsync(); // Se guarda para generar el Identity ID (nuevoDocumento.Id)
-
-
-
-                // 4. Inserción Capa 2: Plantilla de Firmas (Respetando UQ_SecFirma_Orden)
-
-                var firmas = new List<SecuenciaFirma>
-
-{
-
-new SecuenciaFirma { DocumentoId = nuevoDocumento.Id, RolId = model.RolElaboroId, TipoFirma = "Elaboró", Orden = 1 },
-
-new SecuenciaFirma { DocumentoId = nuevoDocumento.Id, RolId = model.RolRevisoId, TipoFirma = "Revisó", Orden = 2 },
-
-new SecuenciaFirma { DocumentoId = nuevoDocumento.Id, RolId = model.RolAproboId, TipoFirma = "Aprobó", Orden = 3 }
-
-};
-
-
+                // 4c. Vincular firmas al documento recién creado
+                foreach (var firma in firmas)
+                    firma.DocumentoId = nuevoDocumento.Id;
 
                 _context.SecuenciaFirmas.AddRange(firmas);
-
                 await _context.SaveChangesAsync();
-
-
-
-                // 5. Commit de Transacción
 
                 await transaction.CommitAsync();
 
-
-
-                // Redirección exitosa al Dashboard
-
                 return RedirectToAction(nameof(Index), new { selectedDeptId = model.DepartamentoId });
-
             }
-
-            catch (System.Exception)
-
+            catch (Exception)
             {
-
-                // 6. Rollback Total en caso de cualquier violación de Constraint (ej. Unique Index del Código)
-
                 await transaction.RollbackAsync();
+                ModelState.AddModelError(string.Empty,
+                    "Ocurrió un error al guardar el documento. Es posible que el código generado ya exista. Se revirtieron los cambios.");
 
-                ModelState.AddModelError(string.Empty, "Ocurrió un error crítico al generar el documento. Se revirtieron los cambios.");
+                // Recargar catálogos
+                model.NivelesDisponibles = await _context.NivelesDocumentos
+                    .Select(n => new SelectListItem { Value = n.Id.ToString(), Text = $"Nivel {n.Numero} - {n.Nombre}" })
+                    .ToListAsync();
+
+                model.NormasDisponibles = await _context.Normas
+                    .Select(n => new SelectListItem { Value = n.Id.ToString(), Text = $"{n.Codigo} - {n.Nombre}" })
+                    .ToListAsync();
 
                 return View(model);
-
             }
-
         }
 
 
@@ -443,7 +449,7 @@ new SecuenciaFirma { DocumentoId = nuevoDocumento.Id, RolId = model.RolAproboId,
                 .Select(v => v.MinioIdentifier)
                 .FirstOrDefaultAsync();
 
-           
+
             return View(model);
         }
 

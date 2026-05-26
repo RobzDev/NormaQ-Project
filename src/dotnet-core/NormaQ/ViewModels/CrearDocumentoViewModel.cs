@@ -10,96 +10,47 @@ namespace NormaQ.ViewModels
 
 {
 
+    // ViewModels/CrearDocumentoViewModel.cs
+
     public class CrearDocumentoViewModel
-
     {
-
+        // --- Paso 1: Datos del Documento ---
         [Required]
-
         public int DepartamentoId { get; set; }
-
         public string DepartamentoNombre { get; set; } = string.Empty;
 
-
-
-        // ==========================================
-
-        // PASO 1: Identidad Lógica
-
-        // ==========================================
-
-        [Required(ErrorMessage = "El nombre del documento es obligatorio")]
-
-        [StringLength(255)]
-
-        [Display(Name = "Nombre del Documento")]
-
+        [Required, MaxLength(255)]
         public string Nombre { get; set; } = string.Empty;
 
-
-
-        [Required(ErrorMessage = "Debe seleccionar un Nivel")]
-
-        [Display(Name = "Nivel ISO")]
-
+        [Required]
         public int NivelId { get; set; }
 
-
-
-        [Required(ErrorMessage = "Debe seleccionar una Norma")]
-
-        [Display(Name = "Norma Aplicable")]
-
+        [Required]
         public int NormaId { get; set; }
 
-
-
-        // ==========================================
-
-        // PASO 2: Plantilla de Firmas
-
-        // ==========================================
-
-        [Required(ErrorMessage = "Debe asignar un rol para Elaborar")]
-
-        [Display(Name = "Rol que Elabora")]
-
-        public int RolElaboroId { get; set; }
-
-
-
-        [Required(ErrorMessage = "Debe asignar un rol para Revisar")]
-
-        [Display(Name = "Rol que Revisa")]
-
-        public int RolRevisoId { get; set; }
-
-
-
-        [Required(ErrorMessage = "Debe asignar un rol para Aprobar")]
-
-        [Display(Name = "Rol que Aprueba")]
-
-        public int RolAproboId { get; set; }
-
-
-
-        // ==========================================
-
-        // CATÁLOGOS (Listas para los <select>)
-
-        // ==========================================
-
         public List<SelectListItem> NivelesDisponibles { get; set; } = new();
-
         public List<SelectListItem> NormasDisponibles { get; set; } = new();
 
+        // --- Paso 2: Secuencia de Firmas ---
+        // El admin elige cuántos slots de cada tipo quiere,
+        // pero el frontend ya pre-rellena 1 de cada uno.
+        // Cada lista contiene los RolId seleccionados en orden.
+        // Como todos los slots son del mismo rol, RolId es constante;
+        // lo que varía es el orden global en la secuencia.
 
+        [Required, MinLength(1)]
+        public List<int> ElaboradoresSeleccionados { get; set; } = new() { 4 }; // mínimo 1
 
-        // Esta lista será inteligente: solo roles con usuarios en el departamento actual
+        [Required, MinLength(1)]
+        public List<int> RevisoresSeleccionados { get; set; } = new() { 3 };   // mínimo 1
 
-        public List<SelectListItem> RolesDisponibles { get; set; } = new();
+        [Required, MinLength(1)]
+        public List<int> AprobadoresSeleccionados { get; set; } = new() { 2 }; // mínimo 1
 
+        // --- Disponibilidad para el frontend (solo lectura, no se postean) ---
+        public int TotalElaboradoresDisponibles { get; set; }
+        public int TotalRevisoresDisponibles { get; set; }
+        public int TotalAprobadoresDisponibles { get; set; }
     }
 
 }

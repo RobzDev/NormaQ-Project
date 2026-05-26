@@ -82,6 +82,8 @@ namespace NormaQ.Controllers
                     .Where(ur => ur.UsuarioId == usuario.Id)
                     .ToListAsync();
 
+                
+
                 // 4. Ejecución: Construcción de Claims
                 var claims = new List<Claim>
         {
@@ -91,6 +93,7 @@ namespace NormaQ.Controllers
             // Claim principal del departamento base del usuario
             new Claim("DepartamentoBaseId", usuario.DepartamentoId.ToString())
         };
+        
 
                 // Inyectamos la matriz de permisos como Claims personalizados
                 // Formato del Claim: "DeptID:RolID"
@@ -289,6 +292,15 @@ namespace NormaQ.Controllers
         [HttpGet]
         public IActionResult RegistroPendiente()
         {
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult AccessDenied(string? reason = null, string? expected = null, string? actual = null)
+        {
+            ViewData["Reason"] = reason;
+            ViewData["Expected"] = expected;
+            ViewData["Actual"] = actual;
             return View();
         }
 
