@@ -55,20 +55,17 @@ services:
       - APP_ENV=local
       - APP_DEBUG=true
 
-    command: >
-      sh -c "
-        php -r 'while(!@fsockopen(\"pgsql\",5432)){echo \"Esperando a Postgres...\n\";sleep(1);}';
-
+    command:
+      - sh
+      - -lc
+      - |
+        php -r 'while(!@fsockopen("pgsql",5432)){echo "Esperando a Postgres...\n";sleep(1);}';
         composer install --no-interaction --prefer-dist --optimize-autoloader;
-
         if ! grep -q '^APP_KEY=base64:' .env; then
-        php artisan key:generate --force --no-interaction;
+          php artisan key:generate --force --no-interaction;
         fi;
-
         php artisan migrate --force --no-interaction;
-
         php-fpm -F
-      "
 
     networks:
       - app-network

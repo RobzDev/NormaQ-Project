@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace NormaQ.ViewModels
@@ -18,6 +19,8 @@ namespace NormaQ.ViewModels
 
         // Explorador Documental Jerárquico (Niveles -> Documentos -> Versiones)
         public List<NivelExploradorDto> ArbolDocumental { get; set; } = new();
+        public List<NotificacionDto> Notificaciones { get; set; } = new();
+
     }
 
     public class ContextoUsuario
@@ -52,8 +55,22 @@ namespace NormaQ.ViewModels
         public byte VersionMayor { get; set; }
         public byte VersionMenor { get; set; }
         public string Estado { get; set; } = string.Empty;
+
+        // Fecha en que se subió/creó la versión
+        public DateTime FechaSubida { get; set; }
+
+        // Nombre del usuario creador (para mostrar en UI)
+        public string CreadoPor { get; set; } = string.Empty;
         
         // Bandera inteligente UI/UX
         public bool RequiereMiIntervencion { get; set; } 
+    }
+
+    public class NotificacionDto
+    {
+        public string DocumentoCodigo { get; set; } = string.Empty;
+        public string VersionLabel { get; set; } = string.Empty;
+        public string NivelNombre { get; set; } = string.Empty;
+        public int VersionId { get; set; }
     }
 }

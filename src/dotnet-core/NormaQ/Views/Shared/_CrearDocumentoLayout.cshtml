@@ -1,0 +1,347 @@
+@using NormaQ.ViewModels
+@{
+    var pageTitle = ViewData["Title"]?.ToString() ?? "Nuevo Documento Lógico";
+}
+<!DOCTYPE html>
+<html lang="es" class="dark antialiased">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@pageTitle — NormaQ</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
+    rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+        darkMode: 'class',
+        theme: {
+        extend: {
+        fontFamily: {
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
+        display: ['Space Grotesk', 'sans-serif'],
+        },
+        animation: {
+        'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'pulse-glow': 'pulseGlow 2s infinite',
+        },
+        keyframes: {
+        fadeInUp: {
+        '0%': { opacity: '0', transform: 'translateY(30px) scale(0.95)' },
+        '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        pulseGlow: {
+        '0%, 100%': { boxShadow: '0 0 15px rgba(99,102,241,0.3)' },
+        '50%': { boxShadow: '0 0 25px rgba(99,102,241,0.6)' },
+        }
+        }
+        }
+        }
+        }
+
+        function toggleTheme(event) {
+        const html = document.documentElement;
+        if (!document.startViewTransition) { html.classList.toggle('dark'); return; }
+        const x = event?.clientX ?? window.innerWidth / 2;
+        const y = event?.clientY ?? window.innerHeight / 2;
+        const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+        const transition = document.startViewTransition(() => { html.classList.toggle('dark'); });
+        transition.ready.then(() => {
+        document.documentElement.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+        { duration: 600, easing: 'cubic-bezier(0.4,0,0.2,1)', pseudoElement: '::view-transition-new(root)' }
+        );
+        });
+        }
+    </script>
+
+    <style>
+        * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        }
+
+        body {
+        min-height: 100vh;
+        background-color: #030305;
+        transition: background-color 0.5s ease;
+        }
+
+        html:not(.dark) body {
+        background-color: #f1f5f9;
+        }
+
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+        animation: none;
+        mix-blend-mode: normal;
+        }
+
+        ::view-transition-old(root) {
+        z-index: 1;
+        }
+
+        ::view-transition-new(root) {
+        z-index: 9999;
+        }
+
+        .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 14px;
+        padding: 0.75rem 1rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        }
+
+        .dark .input-wrapper {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .input-wrapper:focus-within {
+        border-color: #6366f1;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.2);
+        background: rgba(255, 255, 255, 0.9);
+        }
+
+        .dark .input-wrapper:focus-within {
+        background: rgba(15, 15, 20, 0.9);
+        border-color: #818cf8;
+        box-shadow: 0 10px 25px -5px rgba(129, 140, 248, 0.15);
+        }
+
+        .input-wrapper input,
+        .input-wrapper select {
+        width: 100%;
+        background: transparent;
+        border: none;
+        outline: none;
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e293b;
+        padding-left: 2.5rem;
+        cursor: text;
+        }
+
+        .dark .input-wrapper input,
+        .dark .input-wrapper select {
+        color: #f8fafc;
+        }
+
+        .input-wrapper select {
+        appearance: none;
+        cursor: pointer;
+        }
+
+        .input-icon {
+        position: absolute;
+        left: 1.2rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        color: #94a3b8;
+        transition: color 0.3s;
+        pointer-events: none;
+        }
+
+        .input-wrapper:focus-within .input-icon {
+        color: #6366f1;
+        }
+
+        .dark .input-wrapper:focus-within .input-icon {
+        color: #818cf8;
+        }
+
+        .select-arrow {
+        position: absolute;
+        right: 1rem;
+        pointer-events: none;
+        width: 16px;
+        height: 16px;
+        stroke: #94a3b8;
+        fill: none;
+        stroke-width: 2.5;
+        transition: transform 0.3s;
+        }
+
+        .input-wrapper:focus-within .select-arrow {
+        transform: rotate(180deg);
+        stroke: #6366f1;
+        }
+
+        .dark .input-wrapper:focus-within .select-arrow {
+        stroke: #818cf8;
+        }
+
+        .dark option {
+        background: #0f0f13;
+        color: #f8fafc;
+        padding: 10px;
+        }
+
+        html:not(.dark) option {
+        background: #ffffff;
+        color: #1e293b;
+        padding: 10px;
+        }
+
+        .val-error {
+        color: #ef4444;
+        font-size: 11px;
+        margin-top: 6px;
+        display: block;
+        font-weight: 700;
+        margin-left: 6px;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center relative selection:bg-indigo-500 selection:text-white">
+    <canvas id="particles" class="fixed inset-0 z-0 pointer-events-none"></canvas>
+
+    <div
+        class="fixed top-[-10%] left-[-5%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none z-0 hidden dark:block">
+    </div>
+    <div
+        class="fixed bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[120px] pointer-events-none z-0 hidden dark:block">
+    </div>
+    <div
+        class="fixed top-[20%] right-[10%] w-[300px] h-[300px] bg-indigo-400/20 rounded-full blur-[100px] pointer-events-none z-0 block dark:hidden">
+    </div>
+
+    <main class="w-full min-h-screen flex items-center justify-center px-4 sm:px-6 py-8">
+        @RenderBody()
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        function nextStep() {
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const progressBar = document.getElementById('progressBar');
+        const indStep2 = document.getElementById('indStep2');
+        const textStep2 = document.getElementById('textStep2');
+
+        step1.classList.remove('opacity-100', 'translate-y-0');
+        step1.classList.add('opacity-0', '-translate-y-8');
+
+        setTimeout(() => {
+        step1.classList.add('hidden');
+        step2.classList.remove('hidden');
+
+        void step2.offsetWidth;
+
+        step2.classList.remove('opacity-0', 'translate-y-8');
+        step2.classList.add('opacity-100', 'translate-y-0');
+
+        progressBar.style.width = '100%';
+        indStep2.className = 'w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-[0_0_15px_rgba(79,70,229,0.5)] ring-4 ring-indigo-600/20 transition-all duration-700';
+        textStep2.className = 'text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest absolute -bottom-6 whitespace-nowrap transition-colors duration-700';
+        }, 500);
+        }
+
+        function prevStep() {
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const progressBar = document.getElementById('progressBar');
+        const indStep2 = document.getElementById('indStep2');
+        const textStep2 = document.getElementById('textStep2');
+
+        step2.classList.remove('opacity-100', 'translate-y-0');
+        step2.classList.add('opacity-0', 'translate-y-8');
+
+        setTimeout(() => {
+        step2.classList.add('hidden');
+        step1.classList.remove('hidden');
+
+        void step1.offsetWidth;
+
+        step1.classList.remove('opacity-0', '-translate-y-8');
+        step1.classList.add('opacity-100', 'translate-y-0');
+
+        progressBar.style.width = '0%';
+        indStep2.className = 'w-10 h-10 rounded-full bg-white dark:bg-[#1a1a24] border-2 border-slate-200 dark:border-white/10 text-slate-400 flex items-center justify-center text-sm font-bold transition-all duration-700';
+        textStep2.className = 'text-[10px] font-bold text-slate-400 uppercase tracking-widest absolute -bottom-6 whitespace-nowrap transition-colors duration-700';
+        }, 500);
+        }
+    </script>
+
+    <script>
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let W, H, particles = [];
+        let mouse = { x: null, y: null, radius: 150 };
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; init(); }
+        window.addEventListener('resize', resize);
+
+        function init() {
+        particles = [];
+        const count = Math.floor((W * H) / 9000);
+        for (let i = 0; i < count; i++) {
+        particles.push({
+        x: Math.random() * W, y: Math.random() * H,
+        r: Math.random() * 2 + 0.5,
+        vx: (Math.random() - .5) * 0.4, vy: (Math.random() - .5) * 0.4,
+        opacity: Math.random() * 0.5 + 0.2
+        });
+        }
+        }
+        resize();
+
+        function draw() {
+        ctx.clearRect(0, 0, W, H);
+        const isDark = document.documentElement.classList.contains('dark');
+        const col = isDark ? '99, 102, 241' : '67, 56, 202';
+
+        particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+
+        if (mouse.x != null) {
+        let dx = mouse.x - p.x;
+        let dy = mouse.y - p.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < mouse.radius) { p.x -= (dx / dist) * 2; p.y -= (dy / dist) * 2; }
+        }
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        let op = isDark ? p.opacity : p.opacity + 0.2;
+        ctx.fillStyle = `rgba(${col}, ${op})`; ctx.fill();
+        });
+
+        for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y);
+        let lineOp = isDark ? 0.15 : 0.25;
+        ctx.strokeStyle = `rgba(${col}, ${lineOp * (1 - dist / 120)})`;
+        ctx.lineWidth = 1; ctx.stroke();
+        }
+        }
+        }
+        requestAnimationFrame(draw);
+        }
+        draw();
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+
+</html>

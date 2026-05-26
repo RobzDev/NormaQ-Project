@@ -117,24 +117,54 @@
 
                                                                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2.5 rounded-lg border @rowClasses gap-3 transition-colors"
                                                                                  data-estado="@version.Estado">
-                                                                <div class="flex items-center gap-3">
-                                                                    <span class="text-xs font-bold font-mono text-slate-700 dark:text-slate-200">v@(version.VersionMayor).@(version.VersionMenor)</span>
-                                                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide border @badgeColors">
-                                                                        <span class="w-1.5 h-1.5 rounded-full @dotColor"></span> @version.Estado
-                                                                    </span>
-                                                                </div>
-                                                                <div class="flex items-center gap-2 w-full sm:w-auto">
-                                                                    <a asp-action="VisualizarVersion" asp-route-versionId="@version.Id" asp-route-intervencion="@version.RequiereMiIntervencion" class="flex-1 sm:flex-none px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold transition-colors flex items-center justify-center gap-1.5">
-                                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> Abrir
-                                                                    </a>
+                                                                <div class="flex items-center gap-4">
+                                                                    <div class="flex items-center gap-3">
+                                                                        <span class="text-xs font-bold font-mono text-slate-700 dark:text-slate-200">v@(version.VersionMayor).@(version.VersionMenor)</span>
+                                                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide border @badgeColors">
+                                                                            <span class="w-1.5 h-1.5 rounded-full @dotColor"></span> @version.Estado
+                                                                        </span>
+                                                                    </div>
 
-                                                                    @if ((Model.RolActivoNombre == "Revisor" || Model.RolActivoNombre == "Aprobador") && version.RequiereMiIntervencion)
+                                                                    <div class="flex items-center gap-3 text-[10px] text-slate-500 dark:text-slate-400">
+                                                                        <div class="inline-flex items-center gap-2 bg-white/50 dark:bg-black/5 px-2 py-1 rounded-md border border-slate-200/60 dark:border-white/5">
+                                                                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                                            <span class="text-[11px]">Subida el <span class="font-medium text-slate-700 dark:text-slate-200">@version.FechaSubida.ToString("dd MMM yyyy")</span></span>
+                                                                        </div>
+
+                                                                        <div class="inline-flex items-center gap-2 bg-white/50 dark:bg-black/5 px-2 py-1 rounded-md border border-slate-200/60 dark:border-white/5">
+                                                                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.676 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                                                            @if (!string.IsNullOrEmpty(version.CreadoPor) && version.CreadoPor.Equals(Model.UsuarioNombre, System.StringComparison.OrdinalIgnoreCase))
+                                                                            {
+                                                                                <span class="text-[11px] text-emerald-700 font-medium">Creado por ti</span>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span class="text-[11px]">Por <span class="font-medium text-slate-700 dark:text-slate-200">@version.CreadoPor</span></span>
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                
+
+                                                                <div class="flex items-center gap-2 w-full sm:w-auto">
+
+                                                                    @if (version.RequiereMiIntervencion == true)
                                                                     {
-                                                                        <a asp-action="VisualizarVersion" asp-route-versionId="@version.Id" asp-route-intervencion="@version.RequiereMiIntervencion" class="flex-1 sm:flex-none px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-bold shadow-md shadow-amber-500/20 transition-colors flex items-center justify-center gap-1.5">
+                                                                        <a asp-action="VisualizarVersion" asp-route-versionId="@version.Id" class="flex-1 sm:flex-none px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-bold shadow-md shadow-amber-500/20 transition-colors flex items-center justify-center gap-1.5">
                                                                             Acción Requerida
                                                                         </a>
                                                                     }
+                                                                    <a asp-action="VisualizarVersion" asp-route-versionId="@version.Id"  class="flex-1 sm:flex-none px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold transition-colors flex items-center justify-center gap-1.5">
+                                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg> Abrir
+                                                                    </a>
+
+                                                                    
                                                                 </div>
+
+                                                               
+                                                                   
+
                                                             </div>
                                                         }
                                                     </div>
@@ -175,8 +205,7 @@
         </div>
     }
 }
-
-                @section SidebarExtra {
+ @section SidebarExtra {
                     <div class="mb-auto">
                         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-3">Filtros de Estado</p>
                         <div class="space-y-1">
@@ -192,15 +221,92 @@
                                                 class="w-2 h-2 rounded-full bg-slate-300"></span> Todos</a>
                                             </div>
                                         </div>
-                                    }
+}
 
-                                    @section Scripts {
-                                        <script>
-                                            console.log("Cargando función de filtrado...");
-                                            function filtrar(estado) {
-                                                document.querySelectorAll('[data-estado]').forEach(el => {
-                                                    el.style.display = (!estado || el.dataset.estado === estado) ? '' : 'none';
-                                                });
-                                            }
-                                        </script>
-                                    }
+ @section Scripts {
+ <script>
+function filtrar(estado) 
+{
+    document.querySelectorAll('[data-estado]').forEach(el => {
+    el.style.display = (!estado || el.dataset.estado === estado) ? '' : 'none';
+    });
+}
+
+function actualizarConteo() {
+    const conteos = { Aprobado: 0, Revision: 0, Borrador: 0, Obsoleto: 0 };
+    document.querySelectorAll('[data-estado]').forEach(el => {
+        const estado = el.dataset.estado;
+        if (Object.prototype.hasOwnProperty.call(conteos, estado)) {
+            conteos[estado]++;
+        }
+    });
+
+    const elementosConteo = {
+        Aprobado: document.getElementById('conteo-aprobado'),
+        Revision: document.getElementById('conteo-revision'),
+        Borrador: document.getElementById('conteo-borrador'),
+        Obsoleto: document.getElementById('conteo-obsoleto')
+    };
+
+    Object.entries(elementosConteo).forEach(([estado, elemento]) => {
+        if (elemento) {
+            elemento.textContent = conteos[estado];
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', actualizarConteo);
+</script>
+}
+
+
+@section SideDocCount{
+ <div class="text-[10px] space-y-1.5 font-medium text-slate-600 dark:text-slate-400">
+                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> <span id="conteo-aprobado">0</span> Aprobados</div>
+                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-500"></span> <span id="conteo-revision">0</span> En Revisión</div>
+                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-slate-400"></span> <span id="conteo-borrador">0</span> Borradores</div>
+                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span> <span id="conteo-obsoleto">0</span> Obsoletos</div>
+                </div>
+} 
+
+
+@section SideNotifications {
+
+                                                                    
+
+                                                                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-3 tracking-widest pl-1 shrink-0">Notificaciones</p>
+                                                                    <div class="flex-1 overflow-y-auto pr-2">
+
+                                                                        @if (!Model.Notificaciones.Any())
+                                                                        {
+                                                                            <div
+                                                                                class="p-6 border border-dashed border-slate-300 dark:border-white/10 bg-white/30 dark:bg-white/5 rounded-2xl text-center flex flex-col items-center animate-fade-in-up stagger-2">
+                                                                                <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-black/20 flex items-center justify-center mb-2">
+                                                                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                        <path stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                                                    </svg>
+                                                                                </div>
+                                                                                <p class="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Sin actividad reciente</p>
+                                                                            </div>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <div class="space-y-2">
+                                                                                @foreach (var n in Model.Notificaciones)
+                                                                                {
+                                                                                    <a asp-action="VisualizarVersion" asp-route-versionId="@n.VersionId"
+                                                                                       class="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 hover:border-amber-400 dark:hover:border-amber-400/40 transition-colors group">
+                                                                                        <span class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.6)] mt-1 shrink-0"></span>
+                                                                                        <div>
+                                                                                            <p class="text-[11px] font-bold text-amber-700 dark:text-amber-400">@n.DocumentoCodigo — @n.VersionLabel
+                                                                                            </p>
+                                                                                            <p class="text-[10px] text-slate-500 dark:text-slate-400">@n.NivelNombre</p>
+                                                                                            <p class="text-[10px] font-semibold text-amber-600 dark:text-amber-500 mt-0.5">Acción requerida</p>
+                                                                                        </div>
+                                                                                    </a>
+                                                                                }
+                                                                            </div>
+                                                                        }
+
+                                                                    </div>
+                                                                }
