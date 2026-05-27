@@ -129,7 +129,6 @@ namespace NormaQ.Controllers
                                     .All(prev => prev.EstadoFirma == "Aprobado")
                             );
 
-                         Console.WriteLine($"[DEBUG] Evaluando versión {v.Id} del documento {doc.Codigo}: Requiere intervención del usuario? {requiere}");   
 
 
                         if (requiere)
@@ -141,6 +140,9 @@ namespace NormaQ.Controllers
                                 VersionId = v.Id
                             });
 
+                        bool estaRechazado = v.FlujosAprobacions.Any(f => f.EstadoFirma == "Rechazado");   
+                        Console.WriteLine($"[DEBUG] Versión {v.Id} - RequiereIntervención: {requiere}, EstáRechazado: {estaRechazado}"); 
+
                         return new VersionExploradorDto
                         {
                             Id = v.Id,
@@ -148,6 +150,7 @@ namespace NormaQ.Controllers
                             VersionMenor = v.VersionMenor,
                             Estado = v.Estado,
                             RequiereMiIntervencion = requiere,
+                            EstaRechazado = estaRechazado,
                             FechaSubida = v.FechaCreacion,
                             CreadoPor = v.CreadoPorNavigation != null ? v.CreadoPorNavigation.Nombre : v.CreadoPor.ToString()
                         };
@@ -628,6 +631,8 @@ namespace NormaQ.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> FirmarDocumento(FirmarVersionViewModel model)
         {
+
+            Console.WriteLine($"[DEBUG] Acción recibida: {model.Accion} para versión {model.VersionId} con comentarios: '{model.Comentarios}'");
             if (model.Accion == "Rechazado" && string.IsNullOrWhiteSpace(model.Comentarios))
             {
                 TempData["ErrorFirma"] = "Los comentarios son obligatorios al rechazar un documento.";

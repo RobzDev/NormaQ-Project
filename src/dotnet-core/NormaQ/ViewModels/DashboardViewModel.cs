@@ -64,6 +64,8 @@ namespace NormaQ.ViewModels
         
         // Bandera inteligente UI/UX
         public bool RequiereMiIntervencion { get; set; } 
+
+        public bool EstaRechazado { get; set; }
     }
 
     public class NotificacionDto

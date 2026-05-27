@@ -171,10 +171,7 @@
 
         <main class="flex-1 h-full flex flex-col z-20 relative bg-transparent overflow-hidden">
             <header class="h-20 border-b border-slate-200/60 dark:border-white/5 bg-white/40 dark:bg-black/20 backdrop-blur-md px-8 flex items-center justify-between shrink-0">
-                <div class="relative w-full max-w-md group">
-                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" stroke-width="2"></path></svg>
-                    <input type="text" placeholder="Búsqueda rápida en repositorios..." class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 text-sm outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-black/20 transition-all shadow-sm">
-                </div>
+                @RenderSection("Busqueda", required: false)
 
                 <div class="flex items-center gap-4">
                     <div class="group flex items-center gap-2 px-3 py-2 rounded-xl bg-white/60 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 text-xs font-bold text-slate-600 dark:text-slate-300 shadow-sm hover:scale-105 transition-transform cursor-default">
