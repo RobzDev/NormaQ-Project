@@ -1,4 +1,5 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS base
+RUN apt-get update && apt-get install -y curl
 WORKDIR /app
 EXPOSE 80
 

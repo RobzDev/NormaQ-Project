@@ -14,7 +14,7 @@ class SsoController extends Controller
         $validateUrl = config('services.normaq_sso.validate_url', 'http://dotnet-service/api/sso/validate');
 
         if (!$token) {
-            return redirect()->away('http://localhost:80/Account/Login');
+            return redirect()->away('/Account/Login');
         }
 
         // 1. Ejecución: Llamada backend-to-backend al endpoint de C#

@@ -10,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddHealthChecks();
+
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]!)
@@ -67,6 +69,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
+app.MapHealthChecks("/health");
+
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 const int maxMigrationAttempts = 10;
 
@@ -81,7 +85,15 @@ for (var attempt = 1; attempt <= maxMigrationAttempts; attempt++)
         // Reintenta migraciones para cubrir el tiempo de arranque de SQL Server en Docker.
         context.Database.Migrate();
         string seedingSql = File.ReadAllText("/scripts/sqlserver/seeding.sql");
-        context.Database.ExecuteSqlRaw(seedingSql);
+        var batches = seedingSql
+        .Split(["\nGO", "\r\nGO"], StringSplitOptions.RemoveEmptyEntries)
+        .Select(b => b.Trim())
+        .Where(b => !string.IsNullOrWhiteSpace(b));
+
+        foreach (var batch in batches)
+        {
+            context.Database.ExecuteSqlRaw(batch);
+        }
 
         logger.LogInformation("Migraciones aplicadas correctamente en el intento {Attempt}.", attempt);
         break;

@@ -153,7 +153,7 @@ namespace NormaQ.Controllers
                     );
 
                     // Redirigir a Laravel
-                    return Redirect($"http://localhost/php-app/hub?token={ssoToken}");
+                    return Redirect($"/php-app/hub?token={ssoToken}");
                 }
                 else
                 {

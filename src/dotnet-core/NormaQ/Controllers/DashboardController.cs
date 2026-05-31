@@ -123,7 +123,7 @@ namespace NormaQ.Controllers
                         bool requiere = v.FlujosAprobacions
                             .Any(f =>
                                 f.UsuarioId == userId &&
-                                f.EstadoFirma == "Pendiente" || f.EstadoFirma == "Cancelada" &&
+                                f.EstadoFirma == "Pendiente" && f.EstadoFirma != "Cancelada" &&
                                 v.FlujosAprobacions
                                     .Where(prev => prev.Orden < f.Orden)
                                     .All(prev => prev.EstadoFirma == "Aprobado")
@@ -466,6 +466,7 @@ namespace NormaQ.Controllers
             // 1. Ejecución: Recuperar contexto del documento
             var documento = await _context.Documentos
                 .Include(d => d.Nivel) // Corregido a PascalCase según tu AppDbContext
+                .Include(d => d.Departamento).ThenInclude(dep => dep.Compania)
                 .Include(d => d.VersionesDocumentos)
                 .FirstOrDefaultAsync(d => d.Id == model.DocumentoId);
 
@@ -485,8 +486,7 @@ namespace NormaQ.Controllers
 
             // 3. Preparar Identificador para MinIO
             string extension = Path.GetExtension(model.ArchivoFisico.FileName).ToLower();
-            string rutaMinio = $"{documento.DepartamentoId}/Nivel_{documento.Nivel.Numero}/{documento.Codigo}-v{vMayor}.{vMenor}{extension}";
-
+            string rutaMinio = $"{documento.Departamento.Compania.Id}/{documento.DepartamentoId}/Nivel_{documento.Nivel.Numero}/{documento.Codigo}-v{vMayor}.{vMenor}{extension}";
             // ==========================================
             // INICIO DE OPERACIÓN ATÓMICA (MinIO + SQL)
             // ==========================================
@@ -589,6 +589,10 @@ namespace NormaQ.Controllers
 
             // Pasamos la bandera calculada por ViewBag para mantener la compatibilidad con tu vista
             ViewBag.RequiereMiIntervencion = intervencion;
+
+            //ver si el documento es editable por el usuario (si esta en algun flujo de aprobacion y cuya firma no sea "Cancelada" y )
+            bool esEditable = version.FlujosAprobacions.Any(f => f.UsuarioId == userId && f.EstadoFirma != "Cancelado");
+            ViewBag.Editable = esEditable;
 
             return View(version);
         }
@@ -726,7 +730,7 @@ namespace NormaQ.Controllers
 
             var versionActual = await _context.VersionesDocumentos
                 .Include(v => v.Documento).ThenInclude(d => d.Nivel)
-                .Include(v => v.Documento).ThenInclude(d => d.Departamento)
+                .Include(v => v.Documento).ThenInclude(d => d.Departamento).ThenInclude(dep => dep.Compania)
                 .FirstOrDefaultAsync(v => v.Id == model.VersionActualId);
 
             if (versionActual == null) return NotFound();
@@ -736,7 +740,7 @@ namespace NormaQ.Controllers
             byte vMenor = (byte)(versionActual.VersionMenor + 1);
 
             string extension = Path.GetExtension(model.ArchivoNuevo.FileName).ToLower();
-            string rutaMinio = $"{versionActual.Documento.DepartamentoId}/Nivel_{versionActual.Documento.Nivel.Numero}/{versionActual.Documento.Codigo}-v{vMayor}.{vMenor}{extension}";
+            string rutaMinio = $"{versionActual.Documento.Departamento.Compania.Id}/{versionActual.Documento.DepartamentoId}/Nivel_{versionActual.Documento.Nivel.Numero}/{versionActual.Documento.Codigo}-v{vMayor}.{vMenor}{extension}";
 
             string minioId = string.Empty;
             try

@@ -34,6 +34,12 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"] # Ajusta el puerto y ruta según tu app .NET
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s # Tiempo de gracia para que .NET levante (compilación JIT/Migraciones)  
 
   php-service:
     build:
