@@ -14,6 +14,7 @@
     <title>NormaQ — @pageTitle</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="~/js/theme.js"></script>
     <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
     rel="stylesheet">
@@ -955,7 +956,7 @@
         const canvas = document.getElementById('particles');
         const ctx = canvas.getContext('2d');
         let W, H, particles = [];
-        let isDark = true;
+      
 
         let mouse = { x: null, y: null, radius: 150 };
         window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
@@ -1030,28 +1031,7 @@
         }
         draw();
 
-        function applyTheme(dark) {
-        isDark = dark;
-        document.body.className = dark
-        ? 'dark-mode min-h-screen flex items-center justify-center p-4 relative'
-        : 'light-mode min-h-screen flex items-center justify-center p-4 relative';
-        document.getElementById('themeIcon').textContent = dark ? '☀️' : '🌙';
-        document.getElementById('themeLabel').textContent = dark ? 'Modo claro' : 'Modo oscuro';
-        }
-
-        function toggleTheme(event) {
-        if (!document.startViewTransition) { applyTheme(!isDark); return; }
-        const x = event?.clientX ?? innerWidth / 2;
-        const y = event?.clientY ?? innerHeight / 2;
-        const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-        const t = document.startViewTransition(() => applyTheme(!isDark));
-        t.ready.then(() => {
-        document.documentElement.animate(
-        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
-        { duration: 800, easing: 'cubic-bezier(0.4,0,0.2,1)', pseudoElement: '::view-transition-new(root)' }
-        );
-        });
-        }
+       
     </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -1059,7 +1039,7 @@
     <script
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
 
-    @RenderSection("Scripts", required: false)
+    @RenderSection(name: "Scripts", required: false)
 
 </body>
 

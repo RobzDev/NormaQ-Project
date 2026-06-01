@@ -121,14 +121,13 @@ namespace NormaQ.Controllers
                     VersionesFisicas = doc.VersionesDocumentos.Select(v =>
                     {
                         bool requiere = v.FlujosAprobacions
-                            .Any(f =>
-                                f.UsuarioId == userId &&
-                                f.EstadoFirma == "Pendiente" && f.EstadoFirma != "Cancelada" &&
-                                v.FlujosAprobacions
-                                    .Where(prev => prev.Orden < f.Orden)
-                                    .All(prev => prev.EstadoFirma == "Aprobado")
-                            );
-
+                        .Any(f =>
+                            f.UsuarioId == userId &&
+                            f.EstadoFirma == "Pendiente" &&
+                            // Cambiamos el .All de aprobación estricta por un .Any de inexistencia de pendientes previos
+                            !v.FlujosAprobacions
+                                .Any(prev => prev.Orden < f.Orden && prev.EstadoFirma == "Pendiente")
+                        );
 
 
                         if (requiere)
@@ -635,8 +634,8 @@ namespace NormaQ.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> FirmarDocumento(FirmarVersionViewModel model)
         {
-
             Console.WriteLine($"[DEBUG] Acción recibida: {model.Accion} para versión {model.VersionId} con comentarios: '{model.Comentarios}'");
+
             if (model.Accion == "Rechazado" && string.IsNullOrWhiteSpace(model.Comentarios))
             {
                 TempData["ErrorFirma"] = "Los comentarios son obligatorios al rechazar un documento.";
@@ -659,7 +658,6 @@ namespace NormaQ.Controllers
             try
             {
                 // 2. Control de Concurrencia masivo: Cancelar a los demás aprobadores del MISMO ORDEN
-                // Usamos ExecuteUpdateAsync para un UPDATE directo y rápido en SQL Server
                 await _context.FlujosAprobacions
                     .Where(f => f.VersionId == model.VersionId
                              && f.Orden == flujoActual.Orden
@@ -672,23 +670,28 @@ namespace NormaQ.Controllers
                 flujoActual.Comentarios = model.Comentarios ?? string.Empty;
                 flujoActual.FechaFirma = DateTime.UtcNow;
 
-            
-                // NOTA: No tocamos Versiones_Documento. El Trigger 'trg_MutarEstadoVersion' 
-                // escuchará este SaveChanges y evaluará si muta de Borrador -> Revisión -> Aprobado.
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync(); // Se consolida el cambio y el Trigger SQL actúa de inmediato
 
-                await transaction.CommitAsync();
-
+                // ============================================================
+                // 4. CONSULTA POST-TRIGGER: Resolución Limpia de Datos
+                // ============================================================
                 var versionData = await _context.VersionesDocumentos
                 .AsNoTracking()
-                .Select(v => new { v.Id, v.Estado })
+                .Include(v => v.Documento)
+                    .ThenInclude(d => d.Departamento)
                 .FirstOrDefaultAsync(v => v.Id == model.VersionId);
-
 
                 if (versionData != null)
                 {
                     Console.WriteLine($"[DEBUG] Estado detectado post-trigger: {versionData.Estado}");
 
+                    string linkVersion = Url.Action("VisualizarVersion", "Dashboard", new { versionId = versionData.Id }, Request.Scheme) ?? string.Empty;
+                    string docNombreCompleto = $"{versionData.Documento.Nombre} (v{versionData.VersionMayor}.{versionData.VersionMenor})";
+
+                    // ============================================================
+                    // CONTEXTO A: DOCUMENTO TOTALMENTE APROBADO
+                    // ============================================================
                     if (versionData.Estado == "Aprobado")
                     {
                         await _redisPublisher.PublishDocumentAsync(new DocumentApprovedMessage
@@ -696,22 +699,129 @@ namespace NormaQ.Controllers
                             VersionId = versionData.Id
                         });
                         Console.WriteLine($"[Redis] Notificación enviada para versión {versionData.Id}");
+
+                        // Extraer correos de todos los que participaron activamente sin ser cancelados
+                        var usuariosANotificar = await _context.FlujosAprobacions
+                            .Where(f => f.VersionId == versionData.Id && f.EstadoFirma != "Cancelado")
+                            .Select(f => f.Usuario.Email)
+                            .ToListAsync();
+
+                        // EJECUCIÓN DIRECTA: Resolver el correo del creador usando su ID entero
+                        var emailCreadorFinal = await _context.Usuarios
+                            .Where(u => u.Id == versionData.CreadoPor)
+                            .Select(u => u.Email)
+                            .FirstOrDefaultAsync();
+
+                        if (!string.IsNullOrEmpty(emailCreadorFinal))
+                        {
+                            usuariosANotificar.Add(emailCreadorFinal);
+                        }
+
+                        string cuerpoHtmlAprobado = $@"
+                        <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                            <h2 style='color: #10b981;'>QualityDoc — Documento Aprobado Oficialmente</h2>
+                            <p>Nos complace informarle que el documento normativo ha concluido exitosamente su ciclo de firmas:</p>
+                            <blockquote style='background: #f0fdf4; padding: 15px; border-left: 4px solid #10b981; font-weight: bold;'>
+                                {docNombreCompleto}
+                            </blockquote>
+                            <p>El archivo ya se encuentra disponible para consulta en el repositorio de <strong>{versionData.Documento.Departamento.Nombre}</strong>.</p>                  
+                            <br/>
+                            <a href='{linkVersion}' style='background-color: #10b981; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>
+                                Abrir Documento Aprobado
+                            </a>
+                            <p style='font-size: 12px; color: #888; margin-top: 40px;'>Sistema de Gestión ISO 9001 - QualityDoc Polyglot</p>
+                        </div>";
+
+                        foreach (var email in usuariosANotificar.Distinct())
+                        {
+                            await _emailService.EnviarCorreoAsync(email, $"Liberación: {docNombreCompleto}", cuerpoHtmlAprobado);
+                        }
                     }
-                    else if (versionData.Estado == "Revision")
+                    // ============================================================
+                    // CONTEXTO B: SE MANTIENE EN REVISIÓN (AVANZA AL SIGUIENTE ORDEN)
+                    // ============================================================
+                    else if (versionData.Estado == "Revision" && model.Accion == "Aprobado")
                     {
-                        // Lógica opcional: Notificar por correo al siguiente en la secuencia
+                        var siguientesAprobadores = await _context.FlujosAprobacions
+                            .Include(f => f.Usuario)
+                            .Where(f => f.VersionId == versionData.Id
+                                     && f.EstadoFirma == "Pendiente"
+                                     && f.Orden == flujoActual.Orden + 1)
+                            .ToListAsync();
+
+                        foreach (var siguiente in siguientesAprobadores)
+                        {
+                            string cuerpoHtmlFirmaPendiente = $@"
+                            <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                                <h2 style='color: #2563eb;'>QualityDoc — Control de Firma Asignado</h2>
+                                <p>Estimado(a) <strong>{siguiente.Usuario.Nombre}</strong>,</p>
+                                <p>La versión del documento ha sido validada por la fase anterior y se ha habilitado su turno en la cola de firmas:</p>
+                                <table style='background: #f8f9fa; padding: 12px; width: 100%; border-radius: 6px; margin-bottom: 15px;'>
+                                    <tr><td><strong>Documento:</strong></td><td>{versionData.Documento.Nombre}</td></tr>
+                                    <tr><td><strong>Código:</strong></td><td>{versionData.Documento.Codigo}</td></tr>
+                                    <tr><td><strong>Acción Requerida:</strong></td><td>{siguiente.TipoFirma}</td></tr>
+                                </table>
+                                <br/>
+                                <a href='{linkVersion}' style='background-color: #2563eb; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>
+                                    Revisar y Firmar Documento
+                                </a>
+                                <p style='font-size: 12px; color: #888; margin-top: 40px;'>Sistema de Gestión ISO 9001 - QualityDoc Polyglot</p>
+                            </div>";
+
+                            await _emailService.EnviarCorreoAsync(siguiente.Usuario.Email, $"Acción Requerida: Firma Pendiente — {versionData.Documento.Codigo}", cuerpoHtmlFirmaPendiente);
+                        }
                     }
+                    // ============================================================
+                    // CONTEXTO C: LA VERSIÓN FUE RECHAZADA / CANCELADA
+                    // ============================================================
+                    else if (model.Accion == "Rechazado")
+                    {
+                        var involucradosAlerta = await _context.FlujosAprobacions
+                            .Where(f => f.VersionId == versionData.Id && f.EstadoFirma == "Aprobado")
+                            .Select(f => f.Usuario.Email)
+                            .ToListAsync();
 
+                        // EJECUCIÓN DIRECTA: Resolver el ID del Creador de la versión para obtener su Email
+                        var correoCreador = await _context.Usuarios
+                            .Where(u => u.Id == versionData.CreadoPor)
+                            .Select(u => u.Email)
+                            .FirstOrDefaultAsync();
 
+                        if (!string.IsNullOrEmpty(correoCreador))
+                        {
+                            involucradosAlerta.Add(correoCreador);
+                        }
 
+                        string cuerpoHtmlCancelado = $@"
+                        <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+                            <h2 style='color: #ef4444;'>QualityDoc — Flujo Interrumpido (Rechazo)</h2>
+                            <p>Se le notifica que el flujo de aprobación para el siguiente documento ha sido rechazado por un dictaminador:</p>
+                            <div style='background: #fef2f2; padding: 15px; border-left: 4px solid #ef4444; border-radius: 4px;'>
+                                <strong>Documento:</strong> {docNombreCompleto}<br/>
+                                <strong>Rechazado por:</strong> {flujoActual.Usuario.Nombre}<br/>
+                                <strong>Motivo / Observaciones:</strong> <span style='color: #b91c1c;'>""{model.Comentarios}""</span>
+                            </div>
+                            <p style='margin-top: 15px;'>La versión actual ha mutado de estado. Se requiere inyectar una corrección física para reanudar el proceso.</p>                  
+                            <br/>
+                            <a href='{linkVersion}' style='background-color: #ef4444; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>
+                                Ver Observaciones en Visor
+                            </a>
+                            <p style='font-size: 12px; color: #888; margin-top: 40px;'>Sistema de Gestión ISO 9001 - QualityDoc Polyglot</p>
+                        </div>";
+
+                        foreach (var email in involucradosAlerta.Distinct())
+                        {
+                            await _emailService.EnviarCorreoAsync(email, $"Rechazado: {versionData.Documento.Codigo}", cuerpoHtmlCancelado);
+                        }
+                    }
                 }
 
                 return RedirectToAction("VisualizarVersion", new { versionId = model.VersionId });
-
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //await transaction.RollbackAsync();
+                //await transaction.RollbackAsync(); // Evitamos bloqueos permanentes en el pool de SQL Server
+                Console.WriteLine($"[FATAL ERROR] Falló el flujo de firmas o mensajería: {ex.Message}");
                 throw;
             }
         }
