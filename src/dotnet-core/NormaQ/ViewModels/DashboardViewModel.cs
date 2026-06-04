@@ -23,6 +23,8 @@ namespace NormaQ.ViewModels
         public List<NotificacionDto> Notificaciones { get; set; } = new();
         public SnapshotDeptoView? Snapshot { get; set; }
 
+        public string CompaniaNombre { get; set; } = string.Empty;
+
     }
 
     public class ContextoUsuario

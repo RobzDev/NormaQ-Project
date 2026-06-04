@@ -28,6 +28,11 @@ namespace NormaQ.ViewModels
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 
+        // NUEVO: Selección de Compañía
+        [Required(ErrorMessage = "Debes seleccionar una compañía.")]
+        [Display(Name = "Compañía")]
+        public int CompaniaId { get; set; }
+
         [Required(ErrorMessage = "Debes seleccionar un departamento base.")]
         [Display(Name = "Departamento")]
         public int DepartamentoId { get; set; }
@@ -37,6 +42,7 @@ namespace NormaQ.ViewModels
         public int RolId { get; set; }
 
         // Catálogos para los select options
+        public List<SelectListItem>? Companias { get; set; } // Añadido
         public List<SelectListItem>? Departamentos { get; set; }
         public List<SelectListItem>? Roles { get; set; }
     }

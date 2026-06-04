@@ -170,38 +170,65 @@ namespace NormaQ.Controllers
         // REGISTRO (GET y POST) - Usuario INIT
         // ==========================================
         [HttpGet]
-        [HttpGet]
         public async Task<IActionResult> Register()
         {
             var model = new RegisterViewModel();
 
-            // 1. Ejecución: Carga paralela de catálogos para optimizar tiempos de respuesta
-            model.Departamentos = await _context.Departamentos
-                // .Where(d => d.Activo == true) // Descomenta si tienes esta columna
-                .Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Nombre })
+            // 1. Ejecución: Carga de Compañías y Roles globales
+            model.Companias = await _context.Companias
+                .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre })
                 .ToListAsync();
 
             model.Roles = await _context.Roles
                 .Select(r => new SelectListItem { Value = r.Id.ToString(), Text = r.Nombre })
                 .ToListAsync();
 
+            // La lista de Departamentos inicia vacía, se llenará vía AJAX en el cliente
+            model.Departamentos = new List<SelectListItem>();
+
             return View(model);
+        }
+
+        // 2. Ejecución: Endpoint AJAX para alimentar el segundo Select
+        [HttpGet]
+        public async Task<IActionResult> GetDepartamentosPorCompania(int companiaId)
+        {
+            if (companiaId <= 0) return Json(new List<object>());
+
+            var departamentos = await _context.Departamentos
+                .Where(d => d.CompaniaId == companiaId)
+                .Select(d => new { value = d.Id, text = d.Nombre })
+                .ToListAsync();
+
+            return Json(departamentos);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
+            // ==========================================
+            // PASO A: VALIDACIÓN ESTRICTA Y SEGURIDAD
+            // ==========================================
+
+            // 1. Ejecución: Prevenir inyección de departamentos huérfanos
+            if (model.CompaniaId > 0 && model.DepartamentoId > 0)
+            {
+                bool deptoValido = await _context.Departamentos
+                    .AnyAsync(d => d.Id == model.DepartamentoId && d.CompaniaId == model.CompaniaId);
+
+                if (!deptoValido)
+                {
+                    ModelState.AddModelError("DepartamentoId", "El departamento seleccionado no pertenece a la compañía indicada.");
+                }
+            }
+
             if (!ModelState.IsValid)
             {
                 return await RecargarCatalogosYDevolverVista(model);
             }
 
-            // ==========================================
-            // PASO A: VALIDACIÓN E INSERCIÓN EN SALA DE ESPERA
-            // ==========================================
-
-            // 1. Ejecución: Verificación de duplicidad cruzada
+            // 2. Ejecución: Verificación de duplicidad cruzada
             bool existeUsuario = await _context.Usuarios.AnyAsync(u => u.Email == model.Email);
             bool existeSolicitud = await _context.SolicitudesRegistros.AnyAsync(s => s.Email == model.Email && s.Estado == "Pendiente");
 
@@ -211,59 +238,53 @@ namespace NormaQ.Controllers
                 return await RecargarCatalogosYDevolverVista(model);
             }
 
-            // 2. Ejecución: Encriptado e Inserción
+            // 3. Ejecución: Encriptado e Inserción (Solo insertamos DepartamentoId en BD)
             var nuevaSolicitud = new SolicitudesRegistro
             {
                 Nombre = model.Nombre,
                 Email = model.Email,
-                // BCrypt genera el salt automáticamente y hashea la contraseña
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
-                DepartamentoId = model.DepartamentoId,
+                DepartamentoId = model.DepartamentoId, // La DB infiere la compañía automáticamente a través de este FK
                 RolId = model.RolId,
                 Estado = "Pendiente",
                 FechaSolicitud = DateTime.UtcNow
             };
 
             _context.SolicitudesRegistros.Add(nuevaSolicitud);
-            await _context.SaveChangesAsync(); // Se guarda en BD y genera el ID de la solicitud
+            await _context.SaveChangesAsync();
 
             // ==========================================
-            // PASO B: BÚSQUEDA DEL ADMINISTRADOR Y NOTIFICACIÓN
+            // PASO B: BÚSQUEDA DEL ADMINISTRADOR DE ESE DEPARTAMENTO Y NOTIFICACIÓN
             // ==========================================
 
-            // 1. Ejecución: Extraer el nombre del departamento para el cuerpo del correo
+            // (Esta sección permanece exactamente igual a tu código original)
             var depto = await _context.Departamentos.FindAsync(model.DepartamentoId);
             string nombreDepto = depto?.Nombre ?? "Área Desconocida";
 
-            // 2. Ejecución: Búsqueda del Admin mediante Malla de Permisos
-            // Buscamos usuarios con RolId == 1 que estén asignados al mismo DepartamentoId
             var correosAdmins = await _context.UsuariosRoles
                 .Include(ur => ur.Usuario)
                 .Where(ur => ur.DepartamentoId == model.DepartamentoId && ur.RolId == 1 && ur.Usuario.Activo)
                 .Select(ur => ur.Usuario.Email)
                 .ToListAsync();
 
-            // 3. Ejecución: Construcción del Correo
-            // Apuntamos al futuro Dashboard Administrativo donde gestionará las solicitudes
             string linkAprobacion = Url.Action("GestionarSolicitudes", "Dashboard", new { departamentoId = model.DepartamentoId }, Request.Scheme) ?? string.Empty;
 
             string cuerpoHtml = $@"
-                <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
-                    <h2 style='color: #2563eb;'>QualityDoc — Nueva Solicitud de Acceso</h2>
-                    <p>Estimado Administrador,</p>
-                    <p>Un usuario ha solicitado unirse al departamento de <strong>{nombreDepto}</strong>.</p>
-                    <table style='background: #f8f9fa; padding: 15px; border-radius: 5px; width: 100%; max-width: 500px;'>
-                        <tr><td><strong>Nombre:</strong></td><td>{nuevaSolicitud.Nombre}</td></tr>
-                        <tr><td><strong>Email:</strong></td><td>{nuevaSolicitud.Email}</td></tr>
-                    </table>
-                    <br/>
-                    <a href='{linkAprobacion}' style='background-color: #2563eb; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'>
-                        Revisar Solicitud
-                    </a>
-                    <p style='font-size: 12px; color: #888; margin-top: 30px;'>Sistema de Gestión ISO 9001 - QualityDoc Polyglot</p>
-                </div>";
+        <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
+            <h2 style='color: #2563eb;'>QualityDoc — Nueva Solicitud de Acceso</h2>
+            <p>Estimado Administrador,</p>
+            <p>Un usuario ha solicitado unirse al departamento de <strong>{nombreDepto}</strong>.</p>
+            <table style='background: #f8f9fa; padding: 15px; border-radius: 5px; width: 100%; max-width: 500px;'>
+                <tr><td><strong>Nombre:</strong></td><td>{nuevaSolicitud.Nombre}</td></tr>
+                <tr><td><strong>Email:</strong></td><td>{nuevaSolicitud.Email}</td></tr>
+            </table>
+            <br/>
+            <a href='{linkAprobacion}' style='background-color: #2563eb; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'>
+                Revisar Solicitud
+            </a>
+            <p style='font-size: 12px; color: #888; margin-top: 30px;'>Sistema de Gestión ISO 9001 - QualityDoc Polyglot</p>
+        </div>";
 
-            // 4. Ejecución: Envío del correo vía Gmail (IEmailService)
             if (correosAdmins.Any())
             {
                 foreach (var emailAdmin in correosAdmins)
@@ -273,22 +294,40 @@ namespace NormaQ.Controllers
             }
             else
             {
-                // Fallback: Si el departamento no tiene Admin, se envía al administrador general/root
                 await _emailService.EnviarCorreoAsync("rcespinoza04@gmail.com", $"¡ALERTA! Solicitud Huérfana - {nombreDepto}", cuerpoHtml);
             }
 
-            // Redirigir a la vista de éxito/espera
             return RedirectToAction("RegistroPendiente");
         }
 
-        // Método auxiliar para no repetir código al recargar los Selects en caso de error
+        // 4. Ejecución: Método auxiliar actualizado
         private async Task<IActionResult> RecargarCatalogosYDevolverVista(RegisterViewModel model)
         {
-            model.Departamentos = await _context.Departamentos.Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Nombre }).ToListAsync();
-            model.Roles = await _context.Roles.Select(r => new SelectListItem { Value = r.Id.ToString(), Text = r.Nombre }).ToListAsync();
+            model.Companias = await _context.Companias
+                .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Nombre })
+                .ToListAsync();
+
+            model.Roles = await _context.Roles
+                .Select(r => new SelectListItem { Value = r.Id.ToString(), Text = r.Nombre })
+                .ToListAsync();
+
+            // Si falló el modelo pero el usuario ya había seleccionado una compañía, recargamos sus departamentos
+            if (model.CompaniaId > 0)
+            {
+                model.Departamentos = await _context.Departamentos
+                    .Where(d => d.CompaniaId == model.CompaniaId)
+                    .Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Nombre })
+                    .ToListAsync();
+            }
+            else
+            {
+                model.Departamentos = new List<SelectListItem>();
+            }
+
             return View(model);
         }
 
+        
         [HttpGet]
         public IActionResult RegistroPendiente()
         {

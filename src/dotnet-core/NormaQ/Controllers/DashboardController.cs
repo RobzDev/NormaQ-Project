@@ -35,31 +35,33 @@ namespace NormaQ.Controllers
             _emailService = emailService;
             _httpClient = httpClient;
         }
-
         public async Task<IActionResult> Index(int? selectedDeptId)
         {
             // 1. Ejecución: Extracción de Identidad Base
             var userName = User.FindFirstValue(ClaimTypes.Name);
-            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var deptoBaseIdStr = User.FindFirstValue("DepartamentoBaseId");
             int deptoBaseId = string.IsNullOrEmpty(deptoBaseIdStr) ? 0 : int.Parse(deptoBaseIdStr);
 
             int activeDeptId = selectedDeptId ?? deptoBaseId;
 
-        
-
-
             // 2. Ejecución: Resolución de la Malla de Permisos (DeptRole Claims)
             var claimsDeptRole = User.Claims.Where(c => c.Type == "DeptRole").ToList();
-            
+
             var deptIds = claimsDeptRole.Select(c => int.Parse(c.Value.Split(':')[0])).Distinct().ToList();
             var rolIds = claimsDeptRole.Select(c => int.Parse(c.Value.Split(':')[1])).Distinct().ToList();
 
-            var deptosDb = await _context.Departamentos.Where(d => deptIds.Contains(d.Id)).ToListAsync();
+            // REFACTORIZACIÓN MULTI-TENANT: Incluimos la tabla Compañía en la carga inicial
+            var deptosDb = await _context.Departamentos
+                .Include(d => d.Compania) // Asegura traer la entidad de la Compañía vinculada
+                .Where(d => deptIds.Contains(d.Id))
+                .ToListAsync();
+
             var rolesDb = await _context.Roles.Where(r => rolIds.Contains(r.Id)).ToListAsync();
 
             var contextosDisponibles = new List<ContextoUsuario>();
             int activeRoleId = 0;
+            string companiaNombreActiva = string.Empty; // Variable temporal para capturar el nombre
 
             foreach (var claim in claimsDeptRole)
             {
@@ -82,6 +84,8 @@ namespace NormaQ.Controllers
                     if (dId == activeDeptId)
                     {
                         activeRoleId = rId;
+                        // Si este es el departamento activo, extraemos de su navegación el nombre de la compañía
+                        companiaNombreActiva = depto.Compania != null ? depto.Compania.Nombre : "Empresa Independiente";
                     }
                 }
             }
@@ -89,7 +93,7 @@ namespace NormaQ.Controllers
             // Validación de seguridad de contexto
             if (activeRoleId == 0 || !contextosDisponibles.Any(c => c.DepartamentoId == activeDeptId))
             {
-                return Forbid(); 
+                return Forbid();
             }
 
             var contextoActivo = contextosDisponibles.First(c => c.DepartamentoId == activeDeptId);
@@ -108,9 +112,7 @@ namespace NormaQ.Controllers
                 .OrderBy(n => n.Numero)
                 .ToListAsync();
 
-
             var notificaciones = new List<NotificacionDto>();
-            
 
             // 4. Ejecución: Construcción del Árbol DTO
             var arbol = nivelesCatalog.Select(nivel => new NivelExploradorDto
@@ -129,12 +131,9 @@ namespace NormaQ.Controllers
                         .Any(f =>
                             f.UsuarioId == userId &&
                             f.EstadoFirma == "Pendiente" &&
-                            // Cambiamos el .All de aprobación estricta por un .Any de inexistencia de pendientes previos
                             !v.FlujosAprobacions
                                 .Any(prev => prev.Orden < f.Orden && prev.EstadoFirma == "Pendiente")
                         );
-                        
-
 
                         if (requiere)
                             notificaciones.Add(new NotificacionDto
@@ -145,8 +144,8 @@ namespace NormaQ.Controllers
                                 VersionId = v.Id
                             });
 
-                        bool estaRechazado = v.FlujosAprobacions.Any(f => f.EstadoFirma == "Rechazado");   
-                        Console.WriteLine($"[DEBUG] Versión {v.Id} - RequiereIntervención: {requiere}, EstáRechazado: {estaRechazado}"); 
+                        bool estaRechazado = v.FlujosAprobacions.Any(f => f.EstadoFirma == "Rechazado");
+                        Console.WriteLine($"[DEBUG] Versión {v.Id} - RequiereIntervención: {requiere}, EstáRechazado: {estaRechazado}");
 
                         return new VersionExploradorDto
                         {
@@ -159,7 +158,6 @@ namespace NormaQ.Controllers
                             FechaSubida = v.FechaCreacion,
                             CreadoPor = v.CreadoPorNavigation != null ? v.CreadoPorNavigation.Nombre : v.CreadoPor.ToString()
                         };
-                        
                     })
                     .OrderByDescending(v => v.VersionMayor)
                     .ThenByDescending(v => v.VersionMenor)
@@ -173,19 +171,19 @@ namespace NormaQ.Controllers
                 UsuarioNombre = userName,
                 DepartamentoActivoId = activeDeptId,
                 DepartamentoActivoNombre = contextoActivo.NombreDepartamento,
-                RolActivoNombre = contextoActivo.NombreRol, // El rol ahora es dinámico y real
+                RolActivoNombre = contextoActivo.NombreRol,
+                CompaniaNombre = companiaNombreActiva, // INYECCIÓN: Pasamos el nombre mapeado a la vista
                 ContextosDisponibles = contextosDisponibles,
-                Notificaciones = notificaciones, // Pasamos las notificaciones a la vista
+                Notificaciones = notificaciones,
                 ArbolDocumental = arbol,
                 Snapshot = await _context.SnapshotDepto
-                .Where(x => x.DepartamentoId == activeDeptId)
-                .FirstOrDefaultAsync()
-
+                    .Where(x => x.DepartamentoId == activeDeptId)
+                    .FirstOrDefaultAsync()
             };
-
 
             return View(vm);
         }
+
         [HttpGet]
         public async Task<IActionResult> CrearDocumento(int departamentoId)
         {
