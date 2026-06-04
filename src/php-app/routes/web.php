@@ -3,12 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SsoController;
 use App\Http\Controllers\OperativoController;
+use App\Http\Controllers\AuditoriaController;
 
 Route::get('/', function () {
     if (session('is_authenticated')) {
         return redirect('/operativo/dashboard');
     }
-    return redirect()->away('http://localhost/Account/Login')
+    return redirect()->away('/Account/Login')
         ->with('error', 'Debes iniciar sesión para acceder al sistema.');
 });
 
@@ -23,8 +24,10 @@ Route::middleware('auth.custom')->group(function () {
 
 Route::post('/operativo/logout', function () {
     Session::flush();
-    return redirect()->away('http://localhost/Account/Login');
+    return redirect()->away('/Account/Login');
 })->name('operativo.logout');
 
 
 Route::get('/operativo/buscar', [OperativoController::class, 'buscar']);
+
+Route::get('/auditoria', [AuditoriaController::class, 'index']);

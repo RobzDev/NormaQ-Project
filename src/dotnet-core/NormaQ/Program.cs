@@ -67,6 +67,8 @@ builder.Services.AddSingleton<MinioService>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+builder.Services.AddHttpClient();
+
 var app = builder.Build();
 
 app.MapHealthChecks("/health");

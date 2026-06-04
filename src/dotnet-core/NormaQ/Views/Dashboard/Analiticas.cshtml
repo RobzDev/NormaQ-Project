@@ -8,6 +8,7 @@
     ViewData["Departamento"] = Model.DepartamentoActivoId;
     Layout = "~/Views/Shared/_DashboardLayout.cshtml";
     ViewData["DepartamentoActivoId"] = Model.DepartamentoActivoId;
+    
 }
 
 @* ── Serialización segura para JS + Configuración de Chart.js adaptativa ──────────────── *@
@@ -116,6 +117,45 @@
         },
         options: {
         responsive: true,
+        plugins: { legend: { position: 'top', align: 'end' } },
+        scales: baseScales
+        }
+        });
+        }
+
+        // ── Accesos desde el Portal Operativo (PHP) ──────────────────────────────────
+        // Corrección de la serialización directa desde el Model sin carácteres huérfanos
+        const phpLogsRaw = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Results));
+
+        // Reducir y agrupar interacciones por Nombre de Usuario
+        const conteoUsuarios = {};
+        phpLogsRaw.forEach(log => {
+        if (log.usuario_nombre) {
+        conteoUsuarios[log.usuario_nombre] = (conteoUsuarios[log.usuario_nombre] || 0) + 1;
+        }
+        });
+
+        // Convertir a arreglos para Chart.js
+        const labelsPhp = Object.keys(conteoUsuarios);
+        const dataPhp = Object.values(conteoUsuarios);
+
+        const canvasPhp = document.getElementById('chartPhpAuditoria');
+        if (canvasPhp && labelsPhp.length > 0) {
+        new Chart(canvasPhp, {
+        type: 'bar',
+        data: {
+        labels: labelsPhp,
+        datasets: [{
+        label: 'Interacciones (Lecturas/Descargas)',
+        data: dataPhp,
+        backgroundColor: '#3b82f6',
+        borderRadius: 6
+        }]
+        },
+        options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: { legend: { position: 'top', align: 'end' } },
         scales: baseScales
         }
@@ -271,3 +311,58 @@
                                         }
                                     </div>
                                 </div>
+                                @* ── Fila 4: Accesos desde el Portal Operativo (PHP) con Toggle ───────────────────── *@
+                                <div
+                                    class="animate-fade-in-up shadow-sm rounded-2xl bg-white/60 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 backdrop-blur-md overflow-hidden">
+
+                                    @{
+                                        var phpLogs = Model.Results;
+                                    }
+
+                                    <details class="group" @(phpLogs.Any() ? "" : "disabled")>
+                                        @* Encabezado interactivo del Toggle *@
+                                        <summary
+                                            class="p-6 flex items-center justify-between select-none cursor-pointer hover:bg-slate-50/40 dark:hover:bg-white/[0.01] transition-colors list-none">
+                                            <div class="flex items-center gap-3">
+                                                @* Flecha indicadora animada *@
+                                                <svg class="w-4 h-4 text-slate-400 group-open:rotate-120 transition-transform duration-300 transform -rotate-90"
+                                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
+                                                </svg>
+                                                <div>
+                                                    <h3
+                                                        class="text-sm font-bold text-slate-900 dark:text-white font-display uppercase tracking-wider inline-flex items-center gap-2">
+                                                        Accesos en el Portal Operativo
+                                                       
+                                                        </h3>
+                                                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Historial acumulado de interacciones
+                                                            por usuario en este departamento.</p>
+                                                        </div>
+                                                    </div>
+
+                                                    @if (phpLogs.Any())
+                                                    {
+                                                        <span
+                                                            class="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-xs font-bold font-mono border border-blue-500/20">
+                                                            @phpLogs.Count registros externos
+                                                        </span>
+                                                    }
+                                                </summary>
+
+                                                @* Contenedor colapsable interno *@
+                                                <div
+                                                    class="p-6 border-t border-slate-200/60 dark:border-white/5 bg-slate-50/30 dark:bg-black/10 transition-all duration-300">
+                                                    @if (!phpLogs.Any())
+                                                    {
+                                                        <p class="text-xs text-slate-400 dark:text-slate-500 py-6 text-center">Sin interacciones registradas por el
+                                                            servidor de auditoría externa.</p>
+                                                        }
+            else
+                                                        {
+                                                            <div class="h-64 relative w-full">
+                                                                <canvas id="chartPhpAuditoria"></canvas>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </details>
+                                            </div>

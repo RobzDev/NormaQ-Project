@@ -12,6 +12,8 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.IO;
 using NormaQ.Services;
+using JsonSerializer = System.Text.Json.JsonSerializer;
+using HttpClient = System.Net.Http.HttpClient;
 
 
 namespace NormaQ.Controllers
@@ -23,13 +25,15 @@ namespace NormaQ.Controllers
         private readonly MinioService _minioService;
         private readonly RedisPublisherService _redisPublisher;
         private readonly IEmailService _emailService; // Añadido para notificar al usuario
+        private readonly HttpClient _httpClient;
 
-        public DashboardController(AppDbContext context, MinioService minioService, RedisPublisherService redisPublisher, IEmailService emailService)
+        public DashboardController(AppDbContext context, MinioService minioService, RedisPublisherService redisPublisher, IEmailService emailService, HttpClient httpClient)
         {
             _context = context;
             _minioService = minioService;
             _redisPublisher = redisPublisher;
             _emailService = emailService;
+            _httpClient = httpClient;
         }
 
         public async Task<IActionResult> Index(int? selectedDeptId)
@@ -1047,13 +1051,35 @@ namespace NormaQ.Controllers
         [HttpGet]
         public async Task<IActionResult> Analiticas(int departamentoId)
         {
-            // Validación de claim igual al patrón existente
             string claimRequerido = $"{departamentoId}:1";
             if (!User.Claims.Any(c => c.Type == "DeptRole" && c.Value == claimRequerido))
                 return Forbid();
 
             var depto = await _context.Departamentos.FindAsync(departamentoId);
             if (depto == null) return NotFound();
+            // ── Ejecución de la petición al Endpoint de PHP usando el Nombre del Departamento ──
+            List<PhpAuditoriaItem> logsAuditoria = [];
+            try
+            {
+                // Enviar el nombre del departamento mapeado dinámicamente
+                string urlPhp = $"http://nginx-proxy/php-app/auditoria?departamento={Uri.EscapeDataString(depto.Nombre)}"; var response = await _httpClient.GetAsync(urlPhp);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    var phpData = JsonSerializer.Deserialize<PhpAuditoriaResponse>(jsonString);
+                    if (phpData?.Results != null)
+                    {
+                        logsAuditoria = phpData.Results;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] No se pudo conectar al portal operativo PHP: {ex.Message}");
+            }
+
+
 
             var model = new DashboardAnaliticasViewModel
             {
@@ -1082,15 +1108,14 @@ namespace NormaQ.Controllers
                     .Where(x => x.DepartamentoId == departamentoId)
                     .OrderByDescending(x => x.TotalFirmas)
                     .Take(10)
-                    .ToListAsync()
+                    .ToListAsync(),
+
+                Results = logsAuditoria    
             };
 
-            //imprimir los valores de ActividadSemanal, DocumentosMasVersiones, FirmasPendientes y UsuariosActivos para debug
-            Console.WriteLine($"[DEBUG] ActividadSemanal: {model.ActividadSemanal.Count} registros");
-            Console.WriteLine($"[DEBUG] DocumentosMasVersiones: {model.DocumentosMasVersiones.Count} registros");
-            Console.WriteLine($"[DEBUG] FirmasPendientes: {model.FirmasPendientes.Count} registros");
-            Console.WriteLine($"[DEBUG] UsuariosActivos: {model.UsuariosActivos.Count} registros");
+         
 
+          
             ViewData["Title"] = "Analíticas";
             ViewData["ActiveNav"] = "analiticas";
             ViewData["UsuarioNombre"] = model.UsuarioNombre;

@@ -10,4 +10,6 @@ public class DashboardAnaliticasViewModel : LayoutViewModel
     public List<DocumentosMasVersionesView> DocumentosMasVersiones { get; set; } = [];
     public List<FirmasPendientesView>       FirmasPendientes       { get; set; } = [];
     public List<UsuariosActivosView>        UsuariosActivos        { get; set; } = [];
+
+    public List<PhpAuditoriaItem> Results { get; set; } = [];
 }
