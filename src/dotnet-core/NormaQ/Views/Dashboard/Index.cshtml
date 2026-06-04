@@ -292,15 +292,90 @@
                                                     </script>
                                                 }
 
-@section SideDocCount{
- <div class="text-[10px] space-y-1.5 font-medium text-slate-600 dark:text-slate-400">
-                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> <span id="conteo-aprobado">0</span> Aprobados</div>
-                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-500"></span> <span id="conteo-revision">0</span> En Revisión</div>
-                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-slate-400"></span> <span id="conteo-borrador">0</span> Borradores</div>
-                    <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span> <span id="conteo-obsoleto">0</span> Obsoletos</div>
-                </div>
-} 
+@section SideDocCount {
+    @{
+        var snap       = Model.Snapshot;
+        var aprobados  = snap?.Aprobados      ?? 0;
+        var borradores = snap?.Borradores     ?? 0;
+        var revision   = snap?.EnRevision     ?? 0;
+        var obsoletos  = snap?.Obsoletos      ?? 0;
+        var total      = snap?.TotalVersiones ?? 0;
 
+        // Cálculo exacto de porcentajes para el SVG
+        double pctAprobados  = total > 0 ? ((double)aprobados / total) * 100 : 0;
+        double pctRevision   = total > 0 ? ((double)revision / total) * 100 : 0;
+        double pctBorradores = total > 0 ? ((double)borradores / total) * 100 : 0;
+        double pctObsoletos  = total > 0 ? ((double)obsoletos / total) * 100 : 0;
+
+        var pctCentral = total > 0 ? (int)Math.Round(pctAprobados) : 0;
+
+        // Offset acumulativo respetando el nuevo orden secuencial
+        double offsetAprobados  = 0;
+        double offsetRevision   = pctAprobados;
+        double offsetBorradores = pctAprobados + pctRevision;
+        double offsetObsoletos  = pctAprobados + pctRevision + pctBorradores;
+    }
+
+    <div class="flex flex-col gap-5 w-full">
+        @* Gráfica de Dona Multicolor con tus colores exactos *@
+        <div class="w-[100px] h-[100px] relative mx-auto shrink-0">
+            <svg viewBox="0 0 36 36" class="circular-chart w-full h-full transform -rotate-90">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                
+                @if (total > 0)
+                {
+                    <path class="circle transition-all duration-500" 
+                          stroke="#10b981" 
+                          stroke-dasharray="@pctAprobados.ToString("F2", System.Globalization.CultureInfo.InvariantCulture), 100" 
+                          stroke-dashoffset="-@offsetAprobados.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+
+                    <path class="circle transition-all duration-500" 
+                          stroke="#f59e0b" 
+                          stroke-dasharray="@pctRevision.ToString("F2", System.Globalization.CultureInfo.InvariantCulture), 100" 
+                          stroke-dashoffset="-@offsetRevision.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+
+                    <path class="circle transition-all duration-500" 
+                          stroke="#94a3b8" 
+                          stroke-dasharray="@pctBorradores.ToString("F2", System.Globalization.CultureInfo.InvariantCulture), 100" 
+                          stroke-dashoffset="-@offsetBorradores.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+
+                    <path class="circle transition-all duration-500" 
+                          stroke="#ef4444" 
+                          stroke-dasharray="@pctObsoletos.ToString("F2", System.Globalization.CultureInfo.InvariantCulture), 100" 
+                          stroke-dashoffset="-@offsetObsoletos.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                }
+            </svg>
+            
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-xs font-bold text-slate-800 dark:text-white font-display">@pctCentral%</span>
+            </div>
+        </div>
+
+        @* Leyenda original respetando tus clases de Tailwind e IDs *@
+        <div class="text-[10px] space-y-1.5 font-medium text-slate-600 dark:text-slate-400 border-t border-slate-200/60 dark:border-white/5 pt-3.5">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> 
+                <span id="conteo-aprobado" class="font-bold text-slate-900 dark:text-white">@aprobados</span> Aprobados
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span> 
+                <span id="conteo-revision" class="font-bold text-slate-900 dark:text-white">@revision</span> En Revisión
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span> 
+                <span id="conteo-borrador" class="font-bold text-slate-900 dark:text-white">@borradores</span> Borradores
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-red-500 shrink-0"></span> 
+                <span id="conteo-obsoleto" class="font-bold text-slate-900 dark:text-white">@obsoletos</span> Obsoletos
+            </div>
+        </div>
+    </div>
+}
 
 @section SideNotifications {
 

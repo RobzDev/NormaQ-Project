@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using NormaQ.Models;
 
 namespace NormaQ.ViewModels
 {
@@ -20,6 +21,7 @@ namespace NormaQ.ViewModels
         // Explorador Documental Jerárquico (Niveles -> Documentos -> Versiones)
         public List<NivelExploradorDto> ArbolDocumental { get; set; } = new();
         public List<NotificacionDto> Notificaciones { get; set; } = new();
+        public SnapshotDeptoView? Snapshot { get; set; }
 
     }
 

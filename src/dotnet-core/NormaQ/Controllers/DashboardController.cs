@@ -106,6 +106,7 @@ namespace NormaQ.Controllers
 
 
             var notificaciones = new List<NotificacionDto>();
+            
 
             // 4. Ejecución: Construcción del Árbol DTO
             var arbol = nivelesCatalog.Select(nivel => new NivelExploradorDto
@@ -128,6 +129,7 @@ namespace NormaQ.Controllers
                             !v.FlujosAprobacions
                                 .Any(prev => prev.Orden < f.Orden && prev.EstadoFirma == "Pendiente")
                         );
+                        
 
 
                         if (requiere)
@@ -153,6 +155,7 @@ namespace NormaQ.Controllers
                             FechaSubida = v.FechaCreacion,
                             CreadoPor = v.CreadoPorNavigation != null ? v.CreadoPorNavigation.Nombre : v.CreadoPor.ToString()
                         };
+                        
                     })
                     .OrderByDescending(v => v.VersionMayor)
                     .ThenByDescending(v => v.VersionMenor)
@@ -169,8 +172,13 @@ namespace NormaQ.Controllers
                 RolActivoNombre = contextoActivo.NombreRol, // El rol ahora es dinámico y real
                 ContextosDisponibles = contextosDisponibles,
                 Notificaciones = notificaciones, // Pasamos las notificaciones a la vista
-                ArbolDocumental = arbol
+                ArbolDocumental = arbol,
+                Snapshot = await _context.SnapshotDepto
+                .Where(x => x.DepartamentoId == activeDeptId)
+                .FirstOrDefaultAsync()
+
             };
+
 
             return View(vm);
         }
@@ -1034,6 +1042,63 @@ namespace NormaQ.Controllers
             }
         }
 
+        // Agrega este action dentro de tu DashboardController existente
+
+        [HttpGet]
+        public async Task<IActionResult> Analiticas(int departamentoId)
+        {
+            // Validación de claim igual al patrón existente
+            string claimRequerido = $"{departamentoId}:1";
+            if (!User.Claims.Any(c => c.Type == "DeptRole" && c.Value == claimRequerido))
+                return Forbid();
+
+            var depto = await _context.Departamentos.FindAsync(departamentoId);
+            if (depto == null) return NotFound();
+
+            var model = new DashboardAnaliticasViewModel
+            {
+                UsuarioNombre = User.Identity?.Name ?? string.Empty,
+                RolActivoNombre = User.Claims.FirstOrDefault(c => c.Type == "RolActivo")?.Value ?? "Administrador",
+                DepartamentoActivoId = departamentoId,
+                DepartamentoActivoNombre = depto.Nombre,
+
+                ActividadSemanal = await _context.ActividadSemanal
+                    .Where(x => x.DepartamentoId == departamentoId)
+                    .OrderBy(x => x.InicioSemana)
+                    .ToListAsync(),
+
+                DocumentosMasVersiones = await _context.DocumentosMasVersiones
+                    .Where(x => x.DepartamentoId == departamentoId)
+                    .OrderByDescending(x => x.TotalVersiones)
+                    .Take(10)
+                    .ToListAsync(),
+
+                FirmasPendientes = await _context.FirmasPendientes
+                    .Where(x => x.DepartamentoId == departamentoId)
+                    .OrderBy(x => x.VersionCreadaEn)
+                    .ToListAsync(),
+
+                UsuariosActivos = await _context.UsuariosActivos
+                    .Where(x => x.DepartamentoId == departamentoId)
+                    .OrderByDescending(x => x.TotalFirmas)
+                    .Take(10)
+                    .ToListAsync()
+            };
+
+            //imprimir los valores de ActividadSemanal, DocumentosMasVersiones, FirmasPendientes y UsuariosActivos para debug
+            Console.WriteLine($"[DEBUG] ActividadSemanal: {model.ActividadSemanal.Count} registros");
+            Console.WriteLine($"[DEBUG] DocumentosMasVersiones: {model.DocumentosMasVersiones.Count} registros");
+            Console.WriteLine($"[DEBUG] FirmasPendientes: {model.FirmasPendientes.Count} registros");
+            Console.WriteLine($"[DEBUG] UsuariosActivos: {model.UsuariosActivos.Count} registros");
+
+            ViewData["Title"] = "Analíticas";
+            ViewData["ActiveNav"] = "analiticas";
+            ViewData["UsuarioNombre"] = model.UsuarioNombre;
+            ViewData["RolActivoNombre"] = model.RolActivoNombre;
+            ViewData["Departamento"] = model.DepartamentoActivoNombre;
+
+            return View(model);
+        }
 
     }
 }

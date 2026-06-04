@@ -125,9 +125,20 @@
                         class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M4 6h16M4 12h16M4 18h7" stroke-width="2"></path>
                     </svg>Dashboard</a>
-                <a href="#" class="nav-item @(activeNav == "visor" ? "active" : "")"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7" stroke-width="2"></path></svg>Visor de Documentos</a>
                     @if (rolActivoNombre == "Administrador")
                     {
+                        {
+                            <a href="/Dashboard/Analiticas?departamentoId=@deptId"
+                               class="nav-item @(activeNav == "analiticas" ? "active" : "")">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                    stroke-width="2"></path>
+                                </svg>
+                                Analíticas
+                            </a>
+                        }
+
                         <a href="/Dashboard/GestionarSolicitudes?departamentoId=@deptId"
                            class="nav-item @(activeNav == "Aprobacion de Cuentas" ? "active" : "")">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,12 +149,7 @@
                             Aprobación de Cuentas
                         </a>
                     }
-                    <a href="#" class="nav-item @(activeNav == "directorio" ? "active" : "")"><svg class="w-5 h-5"
-                                                                                                   fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                        stroke-width="2"></path>
-                    </svg>Directorio</a>
+                   
             </nav>
 
             <div class="mb-auto">
@@ -182,35 +188,37 @@
             @RenderBody()
         </main>
 
-        <aside class="w-[300px] h-full flex-shrink-0 flex flex-col border-l border-slate-200/80 dark:border-white/5 bg-white/70 dark:bg-black/40 backdrop-blur-xl z-20 p-6 relative">
-            <div class="flex flex-col items-center mb-6 border-b border-slate-200/60 dark:border-white/5 pb-6 shrink-0">
-                <div class="w-20 h-20 rounded-full bg-white dark:bg-white/10 flex items-center justify-center mb-3 shadow-xl border border-slate-100 dark:border-white/10 transform hover:scale-105 transition-transform">
-                    <svg class="w-10 h-10 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                </div>
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white font-display">@usuarioNombre</h3>
-                <span class="px-4 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase mt-2 border border-indigo-100 dark:border-indigo-500/20 tracking-widest">
-                    @rolActivoNombre
-                </span>
-            </div>
+            <aside
+                class="w-[300px] h-full flex-shrink-0 flex flex-col border-l border-slate-200/80 dark:border-white/5 bg-white/70 dark:bg-black/40 backdrop-blur-xl z-20 p-6 relative">
 
-            <p class="text-[10px] font-bold text-slate-500 uppercase mb-3 tracking-widest pl-1 shrink-0">Estado Global</p>
-            <div class="bg-white/60 dark:bg-black/20 p-5 rounded-2xl border border-slate-200/60 dark:border-white/10 flex flex-col gap-4 shadow-sm mb-6 shrink-0 animate-fade-in-up stagger-1">
-                <div class="w-[100px] h-[100px] relative mx-auto">
-                    <svg viewBox="0 0 36 36" class="circular-chart w-full h-full transform -rotate-90">
-                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                        <path class="circle" stroke-dasharray="0, 100" stroke="#10b981" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
-                    </svg>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center">
-                        <span class="text-xs font-bold text-slate-800 dark:text-white">0</span>
+                @* Perfil de Usuario *@
+                <div class="flex flex-col items-center mb-6 border-b border-slate-200/60 dark:border-white/5 pb-6 shrink-0">
+                    <div
+                        class="w-20 h-20 rounded-full bg-white dark:bg-white/10 flex items-center justify-center mb-3 shadow-xl border border-slate-100 dark:border-white/10 transform hover:scale-105 transition-transform">
+                        <svg class="w-10 h-10 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
                     </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white font-display">@usuarioNombre</h3>
+                    <span
+                        class="px-4 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase mt-2 border border-indigo-100 dark:border-indigo-500/20 tracking-widest">
+                        @rolActivoNombre
+                    </span>
                 </div>
-                @RenderSection("SideDocCount", required: false)
-            </div>
 
-            @RenderSection("SideNotifications", required: false)
+                @* Contenedor Central Dinámico (Controla el flujo y la separación) *@
+                <div class="flex-1 flex flex-col gap-y-6 overflow-hidden mb-6">
+                    @RenderSection("SideDocCount", required: false)
+                    @RenderSection("SideNotifications", required: false)
+                </div>
 
-            @RenderSection("DeptSelector", required: false)
-        </aside>
+                @* Selector de departamento (Fijo abajo si existe) *@
+                <div class="shrink-0 mt-auto">
+                    @RenderSection("DeptSelector", required: false)
+                </div>
+
+            </aside>
     </div>
 
     <script>

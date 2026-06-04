@@ -43,6 +43,13 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
 
     public DbSet<SolicitudesRegistro> SolicitudesRegistros { get; set; }
 
+    // Vistas Dashboard (keyless — solo lectura)
+    public DbSet<SnapshotDeptoView> SnapshotDepto { get; set; }
+    public DbSet<ActividadSemanalView> ActividadSemanal { get; set; }
+    public DbSet<DocumentosMasVersionesView> DocumentosMasVersiones { get; set; }
+    public DbSet<FirmasPendientesView> FirmasPendientes { get; set; }
+    public DbSet<UsuariosActivosView> UsuariosActivos { get; set; }
+
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -486,6 +493,12 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Solicitudes_Roles");
         });
+
+        modelBuilder.Entity<SnapshotDeptoView>().HasNoKey().ToView("vw_Snapshot_Depto");
+        modelBuilder.Entity<ActividadSemanalView>().HasNoKey().ToView("vw_Actividad_Semanal");
+        modelBuilder.Entity<DocumentosMasVersionesView>().HasNoKey().ToView("vw_Documentos_Mas_Versiones");
+        modelBuilder.Entity<FirmasPendientesView>().HasNoKey().ToView("vw_Firmas_Pendientes");
+        modelBuilder.Entity<UsuariosActivosView>().HasNoKey().ToView("vw_Usuarios_Activos");
 
 
 
