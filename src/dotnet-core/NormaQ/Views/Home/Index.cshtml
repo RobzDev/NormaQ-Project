@@ -12,119 +12,107 @@
     <title>@ViewData["Title"]</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link
-    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
-    rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
-        darkMode: 'class',
-        theme: {
-        extend: {
-        fontFamily: {
-        sans: ['Plus Jakarta Sans', 'sans-serif'],
-        display: ['Space Grotesk', 'sans-serif'],
-        },
-        animation: {
-        'fade-in': 'fadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        'float-slow': 'floatSlow 8s ease-in-out infinite',
-        'float-medium': 'floatMedium 6s ease-in-out infinite',
-        'float-fast': 'floatFast 7s ease-in-out infinite',
-        'glow-pulse': 'glowPulse 3s infinite',
-        },
-        keyframes: {
-        fadeIn: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
-        floatSlow: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-15px)' } },
-        floatMedium: { '0%, 100%': { transform: 'translateY(0) scale(1.05)' }, '50%': { transform: 'translateY(-10px) scale(1.05)' } },
-        floatFast: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-20px)' } },
-        glowPulse: { '0%, 100%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)' }, '50%': { boxShadow: '0 0 40px rgba(99, 102, 241, 0.8)' } }
-        }
-        }
-        }
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'float-slow': 'floatSlow 8s ease-in-out infinite',
+                        'float-medium': 'floatMedium 6s ease-in-out infinite',
+                        'float-fast': 'floatFast 7s ease-in-out infinite',
+                        'glow-pulse': 'glowPulse 3s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        floatSlow: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-15px)' } },
+                        floatMedium: { '0%, 100%': { transform: 'translateY(0) scale(1.05)' }, '50%': { transform: 'translateY(-10px) scale(1.05)' } },
+                        floatFast: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-20px)' } },
+                        glowPulse: { '0%, 100%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)' }, '50%': { boxShadow: '0 0 40px rgba(99, 102, 241, 0.8)' } }
+                    }
+                }
+            }
         }
 
         function toggleTheme(event) {
-        const html = document.documentElement;
-        if (!document.startViewTransition) { html.classList.toggle('dark'); return; }
-        const x = event?.clientX ?? window.innerWidth / 2;
-        const y = event?.clientY ?? window.innerHeight / 2;
-        const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
-        const transition = document.startViewTransition(() => { html.classList.toggle('dark'); });
-        transition.ready.then(() => {
-        document.documentElement.animate(
-        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
-        { duration: 600, easing: 'cubic-bezier(0.4,0,0.2,1)', pseudoElement: '::view-transition-new(root)' }
-        );
-        });
+            const html = document.documentElement;
+            if (!document.startViewTransition) { html.classList.toggle('dark'); return; }
+            const x = event?.clientX ?? window.innerWidth / 2;
+            const y = event?.clientY ?? window.innerHeight / 2;
+            const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+            const transition = document.startViewTransition(() => { html.classList.toggle('dark'); });
+            transition.ready.then(() => {
+                document.documentElement.animate(
+                    { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+                    { duration: 600, easing: 'cubic-bezier(0.4,0,0.2,1)', pseudoElement: '::view-transition-new(root)' }
+                );
+            });
         }
     </script>
 
     <style>
-        * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        /* MÓVIL: permite scroll. DESKTOP: fijo sin scroll */
         body {
-        overflow: hidden;
-        width: 100vw;
-        height: 100vh;
-        background-color: #030305;
-        transition: background-color 0.5s ease;
-        display: flex;
-        flex-direction: column;
+            width: 100vw;
+            min-height: 100vh;
+            background-color: #030305;
+            transition: background-color 0.5s ease;
+            display: flex;
+            flex-direction: column;
         }
 
-        html:not(.dark) body {
-        background-color: #f1f5f9;
+        @@media (min-width: 768px) {
+            body {
+                overflow: hidden;
+                height: 100vh;
+            }
         }
 
-        ::view-transition-old(root),
-        ::view-transition-new(root) {
-        animation: none;
-        mix-blend-mode: normal;
-        }
+        html:not(.dark) body { background-color: #f1f5f9; }
 
-        ::view-transition-old(root) {
-        z-index: 1;
-        }
-
-        ::view-transition-new(root) {
-        z-index: 9999;
-        }
+        ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+        ::view-transition-old(root) { z-index: 1; }
+        ::view-transition-new(root) { z-index: 9999; }
 
         .text-gradient {
-        background: linear-gradient(to right, #818cf8, #c084fc);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        /* Mockups sólidos en 2D sin bugs de renderizado */
         .mockup-window {
-        background: rgba(10, 10, 15, 0.85);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.9);
-        overflow: hidden;
-        pointer-events: none;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.9);
+            overflow: hidden;
+            pointer-events: none;
         }
 
         html:not(.dark) .mockup-window {
-        background: rgba(255, 255, 255, 0.85);
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.2);
         }
 
         .mockup-center {
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        box-shadow: 0 0 60px -15px rgba(99, 102, 241, 0.4), 0 40px 80px -20px rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 0 60px -15px rgba(99, 102, 241, 0.4), 0 40px 80px -20px rgba(0, 0, 0, 0.9);
         }
 
         html:not(.dark) .mockup-center {
-        border: 1px solid rgba(99, 102, 241, 0.4);
-        box-shadow: 0 0 60px -15px rgba(99, 102, 241, 0.3), 0 40px 80px -20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            box-shadow: 0 0 60px -15px rgba(99, 102, 241, 0.3), 0 40px 80px -20px rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
@@ -133,320 +121,288 @@
 
     <canvas id="particles" class="fixed inset-0 z-0 pointer-events-none"></canvas>
 
-    <div
-        class="fixed top-[-10%] left-[-5%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[140px] pointer-events-none z-0 hidden dark:block">
-    </div>
-    <div
-        class="fixed bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none z-0 hidden dark:block">
-    </div>
+    <div class="fixed top-[-10%] left-[-5%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[140px] pointer-events-none z-0 hidden dark:block"></div>
+    <div class="fixed bottom-[-10%] right-[-5%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[140px] pointer-events-none z-0 hidden dark:block"></div>
 
+    <!-- NAV -->
     <nav class="h-16 md:h-20 flex items-center justify-between px-6 md:px-8 z-50 shrink-0">
         <div class="flex items-center gap-3 animate-fade-in">
-            <div
-                class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                    </path>
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
             </div>
-            <span
-            class="text-sm font-extrabold font-display tracking-widest uppercase text-slate-800 dark:text-white hidden sm:block">NormaQ</span>
+            <span class="text-sm font-extrabold font-display tracking-widest uppercase text-slate-800 dark:text-white hidden sm:block">NormaQ</span>
         </div>
 
         <div class="flex items-center gap-4 animate-fade-in" style="animation-delay: 0.1s;">
             <button onclick="toggleTheme(event)"
                     class="w-10 h-10 rounded-xl bg-white/10 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center transition-all hover:scale-110 hover:bg-white/20 text-slate-600 dark:text-amber-300 shadow-sm backdrop-blur-md">
                 <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
-                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                 </svg>
                 <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
-                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
             </button>
         </div>
     </nav>
 
-    <main
-        class="flex-1 flex flex-col items-center justify-start relative z-40 w-full px-6 pt-4 md:pt-4 pointer-events-none">
-
+    <!-- HERO TEXT -->
+    <main class="flex-1 flex flex-col items-center justify-start relative z-40 w-full px-6 pt-6 md:pt-4 pointer-events-none">
         <div class="text-center animate-fade-in pointer-events-auto w-full max-w-4xl" style="animation-delay: 0.2s;">
-            <h1
-                class="text-4xl sm:text-5xl md:text-[5rem] font-display font-extrabold tracking-tighter mb-4 md:mb-5 drop-shadow-2xl leading-tight">
+            <h1 class="text-4xl sm:text-5xl md:text-[5rem] font-display font-extrabold tracking-tighter mb-4 md:mb-5 drop-shadow-2xl leading-tight">
                 QualityDoc<span class="text-gradient block md:inline">-NormaQ</span>
             </h1>
-            <p
-                class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm md:text-lg max-w-2xl mx-auto font-medium mb-6 md:mb-8 leading-relaxed px-2">
-                El ecosistema definitivo para la gestión de normativas industriales. Centraliza, audita y aprueba en una
-                arquitectura políglota blindada.
+            <p class="text-slate-600 dark:text-slate-400 text-sm md:text-lg max-w-2xl mx-auto font-medium mb-8 leading-relaxed px-2">
+                El ecosistema definitivo para la gestión de normativas industriales. Centraliza, audita y aprueba en una arquitectura políglota blindada.
             </p>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
                 <a asp-controller="Account" asp-action="Login"
-                   class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-8 md:px-10 py-3.5 md:py-4 rounded-2xl text-sm font-bold animate-glow-pulse transition-transform hover:-translate-y-1">
+                   class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-8 md:px-10 py-3.5 md:py-4 rounded-2xl text-sm font-bold animate-glow-pulse transition-transform hover:-translate-y-1 text-center">
                     Ingresar al Portal
                 </a>
                 <a asp-controller="Account" asp-action="Register"
-                   class="w-full sm:w-auto bg-white/60 dark:bg-black/30 backdrop-blur-md border border-slate-300 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-800 dark:text-white px-8 md:px-10 py-3.5 md:py-4 rounded-2xl text-sm font-bold transition-all hover:-translate-y-1">
+                   class="w-full sm:w-auto bg-white/60 dark:bg-black/30 backdrop-blur-md border border-slate-300 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-800 dark:text-white px-8 md:px-10 py-3.5 md:py-4 rounded-2xl text-sm font-bold transition-all hover:-translate-y-1 text-center">
                     Solicitar Acceso
                 </a>
             </div>
         </div>
-    </main>
 
-    <div class="absolute top-[48%] md:top-[50%] left-0 w-full h-[50%] z-20 flex justify-center items-start pointer-events-none opacity-0 animate-fade-in scale-[0.50] sm:scale-[0.65] md:scale-100 origin-top transition-transform"
-         style="animation-delay: 0.5s;">
-        <div class="w-full h-full flex justify-center items-start relative">
+        <!-- MOCKUPS: ocultos en móvil, visibles en md+ -->
+        <div class="hidden md:flex w-full h-[50vh] justify-center items-start relative z-20 mt-8 opacity-0 animate-fade-in"
+             style="animation-delay: 0.5s;">
 
-            <div
-                class="mockup-window w-[340px] h-[240px] absolute -ml-[500px] mt-12 animate-float-slow opacity-60 dark:opacity-80 hidden md:block">
+            <!-- Mockup izquierdo -->
+            <div class="mockup-window w-[340px] h-[240px] absolute -ml-[500px] mt-12 animate-float-slow opacity-60 dark:opacity-80">
                 <div class="h-8 bg-indigo-600 border-b border-white/10 flex items-center px-3 gap-2">
                     <div class="w-4 h-4 bg-white/20 rounded flex items-center justify-center">
                         <div class="w-2 h-2 bg-white rounded-sm"></div>
                     </div>
-                    <span class="text-[9px] text-white font-bold uppercase tracking-wider">Crear Documento
-                        Normativo</span>
+                    <span class="text-[9px] text-white font-bold uppercase tracking-wider">Crear Documento Normativo</span>
+                </div>
+                <div class="p-5">
+                    <div class="flex items-center justify-center gap-2 mb-6">
+                        <div class="w-5 h-5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                        <div class="h-px bg-slate-300 dark:bg-white/10 w-24"></div>
+                        <div class="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/10 border border-slate-300 dark:border-white/20"></div>
                     </div>
-                    <div class="p-5">
-                        <div class="flex items-center justify-center gap-2 mb-6">
-                            <div class="w-5 h-5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
-                            <div class="h-px bg-slate-300 dark:bg-white/10 w-24"></div>
-                            <div
-                                class="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/10 border border-slate-300 dark:border-white/20">
+                    <div class="space-y-4">
+                        <div>
+                            <div class="w-20 h-2 bg-slate-300 dark:bg-slate-600 rounded mb-1.5"></div>
+                            <div class="w-full h-8 rounded-lg bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 flex items-center px-2">
+                                <div class="w-4 h-4 rounded bg-slate-200 dark:bg-white/10"></div>
                             </div>
                         </div>
-                        <div class="space-y-4">
-                            <div>
-                                <div class="w-20 h-2 bg-slate-300 dark:bg-slate-600 rounded mb-1.5"></div>
-                                <div
-                                    class="w-full h-8 rounded-lg bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 flex items-center px-2">
-                                    <div class="w-4 h-4 rounded bg-slate-200 dark:bg-white/10"></div>
-                                </div>
+                        <div class="flex gap-3">
+                            <div class="flex-1 h-8 rounded-lg bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 flex items-center justify-between px-2">
+                                <div class="w-10 h-1.5 bg-slate-300 dark:bg-slate-600 rounded"></div>
+                                <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-white/20"></div>
                             </div>
-                            <div class="flex gap-3">
-                                <div
-                                    class="flex-1 h-8 rounded-lg bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 flex items-center justify-between px-2">
-                                    <div class="w-10 h-1.5 bg-slate-300 dark:bg-slate-600 rounded"></div>
-                                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-white/20"></div>
-                                </div>
-                                <div
-                                    class="flex-1 h-8 rounded-lg bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 flex items-center justify-between px-2">
-                                    <div class="w-10 h-1.5 bg-slate-300 dark:bg-slate-600 rounded"></div>
-                                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-white/20"></div>
-                                </div>
+                            <div class="flex-1 h-8 rounded-lg bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 flex items-center justify-between px-2">
+                                <div class="w-10 h-1.5 bg-slate-300 dark:bg-slate-600 rounded"></div>
+                                <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-white/20"></div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div
-                    class="mockup-window w-[340px] h-[240px] absolute ml-[500px] mt-12 animate-float-fast opacity-60 dark:opacity-80 hidden md:block">
-                    <div
-                        class="h-8 bg-slate-100 dark:bg-[#1a1a24] border-b border-slate-200 dark:border-white/10 flex items-center px-4 justify-between">
-                        <span class="text-[10px] font-bold text-slate-800 dark:text-white font-display">NormaQ |
-                            Operativo</span>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600"></div>
-                                <span class="text-[7px] text-slate-500">Roberto</span>
-                            </div>
+            <!-- Mockup derecho -->
+            <div class="mockup-window w-[340px] h-[240px] absolute ml-[500px] mt-12 animate-float-fast opacity-60 dark:opacity-80">
+                <div class="h-8 bg-slate-100 dark:bg-[#1a1a24] border-b border-slate-200 dark:border-white/10 flex items-center px-4 justify-between">
+                    <span class="text-[10px] font-bold text-slate-800 dark:text-white font-display">NormaQ | Operativo</span>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600"></div>
+                        <span class="text-[7px] text-slate-500">Roberto</span>
+                    </div>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div class="w-full h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center px-3 gap-3">
+                        <div class="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                            <div class="w-3 h-3 bg-emerald-500 rounded-full"></div>
                         </div>
-                        <div class="p-5 space-y-4">
-                            <div
-                                class="w-full h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center px-3 gap-3">
-                                <div
-                                    class="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
-                                    <div class="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                                </div>
-                                <div>
-                                    <div class="w-32 h-2 bg-emerald-600 dark:bg-emerald-400 rounded mb-1.5"></div>
-                                    <div class="w-48 h-1.5 bg-emerald-600/50 dark:bg-emerald-400/50 rounded"></div>
-                                </div>
-                            </div>
-                            <div class="flex gap-3 h-20">
-                                <div
-                                    class="flex-1 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 flex flex-col justify-center gap-2">
-                                    <div class="w-20 h-2 bg-slate-300 dark:bg-slate-600 rounded"></div>
-                                    <div class="w-8 h-4 bg-indigo-100 dark:bg-indigo-500/20 rounded"></div>
-                                </div>
-                                <div
-                                    class="flex-1 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 flex flex-col justify-center gap-2">
-                                    <div class="w-24 h-2 bg-slate-300 dark:bg-slate-600 rounded"></div>
-                                    <div class="w-14 h-6 bg-blue-500/20 border border-blue-500/40 rounded-lg"></div>
-                                </div>
+                        <div>
+                            <div class="w-32 h-2 bg-emerald-600 dark:bg-emerald-400 rounded mb-1.5"></div>
+                            <div class="w-48 h-1.5 bg-emerald-600/50 dark:bg-emerald-400/50 rounded"></div>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 h-20">
+                        <div class="flex-1 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 flex flex-col justify-center gap-2">
+                            <div class="w-20 h-2 bg-slate-300 dark:bg-slate-600 rounded"></div>
+                            <div class="w-8 h-4 bg-indigo-100 dark:bg-indigo-500/20 rounded"></div>
+                        </div>
+                        <div class="flex-1 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-3 flex flex-col justify-center gap-2">
+                            <div class="w-24 h-2 bg-slate-300 dark:bg-slate-600 rounded"></div>
+                            <div class="w-14 h-6 bg-blue-500/20 border border-blue-500/40 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mockup central -->
+            <div class="mockup-window mockup-center w-[540px] h-[340px] absolute z-30 animate-float-medium bg-white/95 dark:bg-[#0a0a0f]/95">
+                <div class="h-10 bg-white/80 dark:bg-[#0a0a0f]/80 border-b border-slate-200 dark:border-white/10 flex items-center px-4 justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-6 h-6 bg-slate-100 dark:bg-white/5 rounded-lg flex items-center justify-center text-slate-500">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-800 dark:text-white leading-none">v1.0 / Manual_Calidad.pdf</span>
+                    </div>
+                    <span class="px-2.5 py-1 bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[8px] rounded font-bold uppercase tracking-wider border border-amber-200 dark:border-amber-500/30">En Revisión</span>
+                </div>
+                <div class="flex h-[calc(100%-2.5rem)]">
+                    <div class="w-[160px] bg-slate-50/80 dark:bg-[#0f0f15]/80 border-r border-slate-200 dark:border-white/10 p-4 flex flex-col gap-4">
+                        <div>
+                            <div class="text-[9px] text-slate-400 mb-1">Identificador</div>
+                            <div class="font-display font-bold text-2xl text-indigo-500">v1.0</div>
+                        </div>
+                        <div class="w-full bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-amber-400"></div>
+                            <div class="w-20 h-2 bg-amber-600/50 dark:bg-amber-400/50 rounded"></div>
+                            <div class="w-full h-12 bg-white/60 dark:bg-black/40 rounded-lg border border-amber-200/50 dark:border-amber-500/20 mt-1"></div>
+                            <div class="flex gap-1.5 mt-1">
+                                <div class="w-1/2 h-5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-md"></div>
+                                <div class="w-1/2 h-5 bg-emerald-500 rounded-md shadow-lg shadow-emerald-500/30"></div>
                             </div>
                         </div>
                     </div>
-
-                    <div
-                        class="mockup-window mockup-center w-[540px] h-[340px] absolute z-30 animate-float-medium bg-white/95 dark:bg-[#0a0a0f]/95">
-                        <div
-                            class="h-10 bg-white/80 dark:bg-[#0a0a0f]/80 border-b border-slate-200 dark:border-white/10 flex items-center px-4 justify-between">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="w-6 h-6 bg-slate-100 dark:bg-white/5 rounded-lg flex items-center justify-center text-slate-500">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                              d="M15 19l-7-7 7-7"></path>
-                                    </svg></div>
-                                    <div class="flex flex-col">
-                                        <span class="text-[10px] font-bold text-slate-800 dark:text-white leading-none">v1.0 /
-                                            Manual_Calidad.pdf</span>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span
-                                            class="px-2.5 py-1 bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[8px] rounded font-bold uppercase tracking-wider border border-amber-200 dark:border-amber-500/30">En
-                                            Revisión</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex h-[calc(100%-2.5rem)]">
-                                        <div
-                                            class="w-[160px] bg-slate-50/80 dark:bg-[#0f0f15]/80 border-r border-slate-200 dark:border-white/10 p-4 flex flex-col gap-4">
-                                            <div>
-                                                <div class="text-[9px] text-slate-400 mb-1">Identificador</div>
-                                                <div class="font-display font-bold text-2xl text-indigo-500">v1.0</div>
-                                            </div>
-                                            <div
-                                                class="w-full bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden">
-                                                <div class="absolute top-0 left-0 w-1 h-full bg-amber-400"></div>
-                                                <div class="w-20 h-2 bg-amber-600/50 dark:bg-amber-400/50 rounded"></div>
-                                                <div
-                                                    class="w-full h-12 bg-white/60 dark:bg-black/40 rounded-lg border border-amber-200/50 dark:border-amber-500/20 mt-1">
-                                                </div>
-                                                <div class="flex gap-1.5 mt-1">
-                                                    <div
-                                                        class="w-1/2 h-5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-md">
-                                                    </div>
-                                                    <div class="w-1/2 h-5 bg-emerald-500 rounded-md shadow-lg shadow-emerald-500/30"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div
-                                            class="flex-1 bg-slate-200/50 dark:bg-[#151520]/50 p-4 flex flex-col items-center justify-center overflow-hidden">
-                                            <div
-                                                class="w-[90%] h-[95%] bg-white dark:bg-[#111] dark:invert dark:hue-rotate-180 rounded-lg shadow-xl border border-slate-300 dark:border-white/5 p-6 flex flex-col relative overflow-hidden">
-                                                <div class="w-full h-10 bg-indigo-600/20 mb-8 rounded-sm"></div>
-                                                <div
-                                                    class="w-16 h-16 mx-auto rounded-full border-4 border-slate-200 mb-6 flex items-center justify-center">
-                                                    <div class="w-8 h-8 rounded-full bg-slate-200"></div>
-                                                </div>
-                                                <div class="w-5/6 h-4 mx-auto bg-slate-800 rounded-sm mb-8"></div>
-                                                <div class="w-2/3 h-2 mx-auto bg-slate-400 rounded-sm mb-3"></div>
-                                                <div class="w-1/2 h-2 mx-auto bg-slate-400 rounded-sm mb-3"></div>
-                                                <div class="w-3/4 h-2 mx-auto bg-slate-300 rounded-sm"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                    <div class="flex-1 bg-slate-200/50 dark:bg-[#151520]/50 p-4 flex flex-col items-center justify-center overflow-hidden">
+                        <div class="w-[90%] h-[95%] bg-white dark:bg-[#111] dark:invert dark:hue-rotate-180 rounded-lg shadow-xl border border-slate-300 dark:border-white/5 p-6 flex flex-col relative overflow-hidden">
+                            <div class="w-full h-10 bg-indigo-600/20 mb-8 rounded-sm"></div>
+                            <div class="w-16 h-16 mx-auto rounded-full border-4 border-slate-200 mb-6 flex items-center justify-center">
+                                <div class="w-8 h-8 rounded-full bg-slate-200"></div>
                             </div>
-
-                            <div
-                                class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#030305] to-transparent z-40 dark:block hidden">
-                            </div>
-                            <div
-                                class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#f1f5f9] to-transparent z-40 block dark:hidden">
-                            </div>
+                            <div class="w-5/6 h-4 mx-auto bg-slate-800 rounded-sm mb-8"></div>
+                            <div class="w-2/3 h-2 mx-auto bg-slate-400 rounded-sm mb-3"></div>
+                            <div class="w-1/2 h-2 mx-auto bg-slate-400 rounded-sm mb-3"></div>
+                            <div class="w-3/4 h-2 mx-auto bg-slate-300 rounded-sm"></div>
                         </div>
+                    </div>
+                </div>
+            </div>
 
-                        <footer
-                            class="h-14 md:h-16 px-8 flex items-center justify-center z-50 shrink-0 bg-white/10 dark:bg-black/40 backdrop-blur-md border-t border-slate-200/50 dark:border-white/5 w-full absolute bottom-0 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-                            <a asp-controller="Home" asp-action="Privacy"
-                               class="inline-flex items-center gap-2 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all hover:scale-105 group">
-                                <svg class="w-4 h-4 md:w-5 md:h-5 group-hover:text-indigo-500 transition-colors" fill="none"
-                                     stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
-                                    </path>
-                                </svg>
-                                Políticas de Privacidad
-                            </a>
-                        </footer>
+            <!-- Fade inferior (solo desktop) -->
+            <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#030305] to-transparent z-40 dark:block hidden"></div>
+            <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#f1f5f9] to-transparent z-40 block dark:hidden"></div>
+        </div>
 
-                        <script>
-                            const canvas = document.getElementById('particles');
-                            const ctx = canvas.getContext('2d');
-                            let W, H, particles = [];
-                            let mouse = { x: null, y: null, radius: 200 };
+        <!-- MÓVIL: mini preview decorativa en lugar de los mockups -->
+        <div class="flex md:hidden mt-10 mb-24 w-full justify-center animate-fade-in" style="animation-delay: 0.5s;">
+            <div class="mockup-window mockup-center w-full max-w-[320px] h-[200px]">
+                <div class="h-8 bg-white/80 dark:bg-[#0a0a0f]/80 border-b border-slate-200 dark:border-white/10 flex items-center px-3 justify-between">
+                    <span class="text-[9px] font-bold text-slate-800 dark:text-white">v1.0 / Manual_Calidad.pdf</span>
+                    <span class="px-2 py-0.5 bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[7px] rounded font-bold uppercase border border-amber-200 dark:border-amber-500/30">En Revisión</span>
+                </div>
+                <div class="flex h-[calc(100%-2rem)]">
+                    <div class="w-[100px] bg-slate-50/80 dark:bg-[#0f0f15]/80 border-r border-slate-200 dark:border-white/10 p-3 flex flex-col gap-3">
+                        <div>
+                            <div class="text-[8px] text-slate-400 mb-0.5">Identificador</div>
+                            <div class="font-display font-bold text-xl text-indigo-500">v1.0</div>
+                        </div>
+                        <div class="flex gap-1">
+                            <div class="w-1/2 h-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded"></div>
+                            <div class="w-1/2 h-4 bg-emerald-500 rounded shadow-sm shadow-emerald-500/30"></div>
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-slate-200/50 dark:bg-[#151520]/50 p-3 flex flex-col items-center justify-center">
+                        <div class="w-full h-full bg-white dark:bg-[#111] dark:invert dark:hue-rotate-180 rounded border border-slate-300 dark:border-white/5 p-3 flex flex-col gap-2">
+                            <div class="w-full h-6 bg-indigo-600/20 rounded-sm"></div>
+                            <div class="w-3/4 h-2 mx-auto bg-slate-400 rounded-sm"></div>
+                            <div class="w-1/2 h-2 mx-auto bg-slate-300 rounded-sm"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
-                            window.addEventListener('mousemove', (e) => {
-                            mouse.x = e.x;
-                            mouse.y = e.y;
-                            });
+    <!-- FOOTER: estático en móvil, absoluto en desktop -->
+    <footer class="relative md:absolute md:bottom-0 md:left-0 h-14 md:h-16 px-8 flex items-center justify-center z-50 md:w-full bg-white/10 dark:bg-black/40 backdrop-blur-md border-t border-slate-200/50 dark:border-white/5 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
+        <a asp-controller="Home" asp-action="Privacy"
+           class="inline-flex items-center gap-2 text-xs md:text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all hover:scale-105 group">
+            <svg class="w-4 h-4 md:w-5 md:h-5 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            Políticas de Privacidad
+        </a>
+    </footer>
 
-                            // En pantallas táctiles, desactivar el magnetismo
-                            window.addEventListener('touchstart', () => { mouse.x = null; mouse.y = null; }, { passive: true });
+    <script>
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let W, H, particles = [];
+        let mouse = { x: null, y: null, radius: 200 };
 
-                            function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; init(); }
+        window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+        window.addEventListener('touchstart', () => { mouse.x = null; mouse.y = null; }, { passive: true });
 
-                            class Particle {
-                            constructor() {
-                            this.x = Math.random() * W; this.y = Math.random() * H;
-                            this.r = Math.random() * 2 + 0.5;
-                            this.opacity = Math.random() * 0.5 + 0.1;
-                            this.vx = (Math.random() - 0.5) * 0.4; this.vy = (Math.random() - 0.5) * 0.4;
-                            }
-                            draw(color) {
-                            ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-                            ctx.fillStyle = `rgba(${color}, ${this.opacity})`; ctx.fill();
-                            }
-                            update() {
-                            this.x += this.vx; this.y += this.vy;
-                            if (this.x < 0 || this.x > W) this.vx *= -1;
-                            if (this.y < 0 || this.y > H) this.vy *= -1;
+        function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; init(); }
 
-                            if (mouse.x !== null && mouse.y !== null) {
-                            let dx = mouse.x - this.x; let dy = mouse.y - this.y;
-                            let distance = Math.sqrt(dx * dx + dy * dy);
-                            if (distance < mouse.radius) {
-                            const force = (mouse.radius - distance) / mouse.radius;
-                            this.x -= (dx / distance) * force * 3;
-                            this.y -= (dy / distance) * force * 3;
-                            }
-                            }
-                            }
-                            }
+        class Particle {
+            constructor() {
+                this.x = Math.random() * W; this.y = Math.random() * H;
+                this.r = Math.random() * 2 + 0.5;
+                this.opacity = Math.random() * 0.5 + 0.1;
+                this.vx = (Math.random() - 0.5) * 0.4; this.vy = (Math.random() - 0.5) * 0.4;
+            }
+            draw(color) {
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${color}, ${this.opacity})`; ctx.fill();
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                if (this.x < 0 || this.x > W) this.vx *= -1;
+                if (this.y < 0 || this.y > H) this.vy *= -1;
+                if (mouse.x !== null && mouse.y !== null) {
+                    let dx = mouse.x - this.x; let dy = mouse.y - this.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < mouse.radius) {
+                        const force = (mouse.radius - distance) / mouse.radius;
+                        this.x -= (dx / distance) * force * 3;
+                        this.y -= (dy / distance) * force * 3;
+                    }
+                }
+            }
+        }
 
-                            function init() {
-                            particles = [];
-                            const isMobile = window.innerWidth < 768;
-                            const count = Math.floor((W * H) / (isMobile ? 18000 : 9000)); // Menos partículas en móvil
-                            for (let i = 0; i < count; i++) particles.push(new Particle());
-                            }
+        function init() {
+            particles = [];
+            const isMobile = window.innerWidth < 768;
+            const count = Math.floor((W * H) / (isMobile ? 18000 : 9000));
+            for (let i = 0; i < count; i++) particles.push(new Particle());
+        }
 
-                            function animate() {
-                            ctx.clearRect(0, 0, W, H);
-                            const isDark = document.documentElement.classList.contains('dark');
-                            const rgbColor = isDark ? '255, 255, 255' : '99, 102, 241';
+        function animate() {
+            ctx.clearRect(0, 0, W, H);
+            const isDark = document.documentElement.classList.contains('dark');
+            const rgbColor = isDark ? '255, 255, 255' : '99, 102, 241';
+            particles.forEach(p => { p.update(); p.draw(rgbColor); });
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    let dx = particles[i].x - particles[j].x;
+                    let dy = particles[i].y - particles[j].y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 100) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(${rgbColor}, ${0.15 * (1 - dist / 100)})`;
+                        ctx.lineWidth = 1;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
 
-                            particles.forEach(p => { p.update(); p.draw(rgbColor); });
-
-                            for (let i = 0; i < particles.length; i++) {
-                            for (let j = i + 1; j < particles.length; j++) {
-                            let dx = particles[i].x - particles[j].x;
-                            let dy = particles[i].y - particles[j].y;
-                            let dist = Math.sqrt(dx * dx + dy * dy);
-
-                            if (dist < 100) {
-                            ctx.beginPath();
-                            ctx.strokeStyle = `rgba(${rgbColor}, ${0.15 * (1 - dist / 100)})`;
-                            ctx.lineWidth = 1;
-                            ctx.moveTo(particles[i].x, particles[i].y);
-                            ctx.lineTo(particles[j].x, particles[j].y);
-                            ctx.stroke();
-                            }
-                            }
-                            }
-                            requestAnimationFrame(animate);
-                            }
-
-                            window.addEventListener('resize', resize);
-                            resize(); animate();
-                        </script>
-                    </body>
-
-                </html>
+        window.addEventListener('resize', resize);
+        resize(); animate();
+    </script>
+</body>
+</html>
