@@ -1,217 +1,156 @@
+Aquí tienes una versión completamente reestructurada y profesional del archivo `README.md`. He integrado el diagrama de arquitectura (en formato de texto estructurado y marcadores), detallado el proceso exacto para clonar, configurar los dos entornos de variables (`.env`) desde sus respectivos archivos de ejemplo, y listado las credenciales por defecto para que el documento sea 100% autoejecutable.
+
+---
+
 # NormaQ / Proyecto DocsManager
 
 NormaQ es una plataforma documental compuesta por varios servicios coordinados que permiten la gestión operativa de documentos, su autenticación centralizada, el almacenamiento de archivos, la consulta de información y la indexación para búsqueda. El repositorio está organizado como una solución multi-servicio con tres aplicaciones principales y una infraestructura compartida de base de datos, mensajería y almacenamiento.
 
-El proyecto combina las siguientes capas:
+---
 
-- Un núcleo web en **ASP.NET Core** encargado de la lógica principal, autenticación por cookies, acceso a SQL Server y publicación de eventos relacionados con documentos.
-- Una aplicación complementaria en **Laravel** orientada a funciones operativas, consulta y auditoría dentro del flujo del usuario.
-- Un servicio auxiliar en **FastAPI** para indexación, búsqueda y sincronización documental sobre MongoDB.
-- Servicios de soporte en **Docker** para SQL Server, PostgreSQL, Redis, MinIO y MongoDB.
+## 1. Arquitectura del Sistema
 
-La disposición del repositorio responde a una arquitectura orientada a dominio, con separación clara entre la lógica de negocio, la persistencia y la infraestructura. Esto facilita el despliegue local, la evolución por módulos y la incorporación posterior de nuevas capacidades sin mezclar responsabilidades.
+El sistema implementa una arquitectura de microservicios orientada al dominio, comunicada mediante HTTP y eventos asíncronos (Redis Pub/Sub).
 
-## Estructura general del repositorio
+```
+                      [ NGINX Reverse Proxy (Puerto 80) ]
+                                      |
+                                      v
+                             [ .NET 10 Core MVC ]
+                               Servicio Maestro
+                         (Login, Registro, Negocio)
+                               |            |
+         +---------------------+            +---------------------+
+         | HTTP (SSO)          | Redis      | Redis               | HTTP
+         v                     | Pub/Sub    v                     v
+  [ Laravel / PHP ]            |         [ SQL Server ]    [ FastAPI / Python ]
+   Portal Operario             |          (Documentos &      Indexación, Búsqueda
+    (Solo Lectura)             v            Usuarios)           Autocompletado
+         |              [ MinIO Object Storage ]                  |
+         |                 (Archivos Físicos)                     |
+         v                     ^            ^                     v
+  [ PostgreSQL ]               |            |               [ MongoDB ]
+   (Auditoría)                 +------------+             (Índice Full-Text)
 
-- `src/dotnet-core/NormaQ/`: aplicación principal en ASP.NET Core 10.
-- `src/php-app/`: aplicación Laravel 13 con frontend basado en Vite y Tailwind.
-- `src/fastapi/`: servicio Python con FastAPI para búsqueda e indexación.
-- `docker/`: definición de contenedores, proxy Nginx y composición de la infraestructura.
-- `db/`: scripts de inicialización y seeding para SQL Server y PostgreSQL.
-
-## Componentes del sistema
-
-### Aplicación principal en ASP.NET Core
-
-El proyecto ubicado en `src/dotnet-core/NormaQ/` actúa como el núcleo del sistema. Desde allí se inicializa el contexto de Entity Framework, la autenticación basada en cookies, la integración con Redis y la conexión con MinIO para almacenamiento de objetos. Durante el arranque, la aplicación aplica migraciones y ejecuta el script de inicialización de SQL Server para asegurar que la base de datos esté lista antes de atender solicitudes.
-
-### Aplicación Laravel
-
-La aplicación situada en `src/php-app/` complementa el flujo operativo del sistema. Su capa de rutas expone funcionalidades de acceso, consulta, auditoría y navegación interna. En el despliegue por Docker, esta aplicación se prepara automáticamente con dependencias, generación de clave y migraciones de base de datos.
-
-### Servicio FastAPI
-
-El módulo `src/fastapi/` se encarga de la indexación y consulta especializada. Su ciclo de vida inicia conexiones con MongoDB, crea índices, ejecuta validaciones de sincronización y mantiene un listener asíncrono para reaccionar a cambios documentales.
-
-### Infraestructura compartida
-
-El directorio `docker/` define la orquestación local con Nginx como punto de entrada HTTP, además de SQL Server, PostgreSQL, Redis, MinIO, MongoDB y los servicios de aplicación. Este enfoque permite levantar todo el ecosistema con un único comando y reproducir el entorno completo en una estación de desarrollo.
-
-## Requisitos previos
-
-Antes de clonar y ejecutar el proyecto, asegúrate de contar con lo siguiente:
-
-- Git.
-- Docker Engine y Docker Compose.
-- Puertos libres para los servicios expuestos: `80`, `1433`, `5432`, `6379`, `8000`, `9000`, `9001` y `27017`.
-
-## Cómo clonar el repositorio
-
-1. Abre una terminal en la carpeta donde deseas guardar el proyecto.
-2. Clona el repositorio.
-
-```bash
-git clone <URL_DEL_REPOSITORIO>
 ```
 
-3. Entra al directorio raíz del proyecto.
+### Capas del Proyecto
+
+* **Núcleo Web (.NET 10 MVC):** Encargado de la lógica principal, autenticación centralizada compartida (Redis SSO), acceso a SQL Server y publicación de eventos relacionados con documentos.
+* **Portal Operario (Laravel 13):** Aplicación complementaria orientada a funciones operativas de lectura, consulta y auditoría con persistencia en PostgreSQL.
+* **Servicio de Búsqueda (FastAPI):** Servicio auxiliar en Python enfocado en la indexación, búsqueda y sincronización documental sobre MongoDB.
+* **Infraestructura:** Orquestación en Docker para SQL Server, PostgreSQL, Redis, MinIO y MongoDB.
+
+---
+
+## 2. Estructura del Repositorio
+
+```
+NormaQ-Project/
+├── db/                             # Scripts de inicialización y seeding
+│   ├── sqlserver/
+│   └── pgsql/
+├── docker/                         # Configuración de Docker Compose y Nginx
+│   ├── .env.example                # Plantilla de entorno para la infraestructura
+│   └── nginx/
+└── src/                            # Código fuente de las aplicaciones
+    ├── dotnet-core/NormaQ/         # Aplicación principal en ASP.NET Core 10
+    ├── fastapi/                    # Microservicio de búsqueda (Python)
+    └── php-app/                    # Portal operativo (Laravel 13 + Vite)
+        └── .env.example            # Plantilla de entorno interna de Laravel
+
+```
+
+---
+
+## 3. Requisitos Previos
+
+Antes de desplegar, asegúrate de tener instalados los siguientes componentes en tu sistema operativo:
+
+* **Git**
+* **Docker Engine** y **Docker Compose**
+* **Puertos Libres:** Es mandatorio que los siguientes puertos no estén ocupados por instancias locales:
+* `80` (Nginx)
+* `1433` (SQL Server)
+* `5432` (PostgreSQL)
+* `6379` (Redis)
+* `8000` (FastAPI)
+* `9000` & `9001` (MinIO API / Console)
+* `27017` (MongoDB)
+
+
+
+---
+
+## 4. Instalación y Configuración Inicial
+
+### Paso 1: Clonar el repositorio
 
 ```bash
+git clone https://github.com/RobzDev/NormaQ-Project.git
 cd NormaQ-Project
+
 ```
 
-4. Verifica que la estructura esperada esté presente antes de continuar.
+### Paso 2: Configurar Variables de Entorno (.env)
 
-## Configuración inicial recomendada
+El proyecto requiere la configuración de **dos archivos** `.env` independientes para poder inicializar la infraestructura y el contenedor de Laravel de forma correcta.
 
-La forma más estable y reproducible de ejecutar este proyecto es mediante Docker Compose, ya que el repositorio incluye la definición de todos los servicios y sus dependencias.
+1. **Configurar Entorno de Infraestructura (Docker):**
+```bash
+# Copia el archivo de ejemplo en la raíz de la carpeta de docker
+cp docker/.env.example docker/.env
 
-1. Ubícate en la carpeta `docker/`.
-2. Crea o ajusta el archivo de variables de entorno que consume la composición.
-3. Define al menos las credenciales y parámetros que usan SQL Server, PostgreSQL, MongoDB, MinIO, Redis y la conexión entre servicios.
+```
 
-Las variables que normalmente debes revisar son las siguientes:
 
-- `SA_PASSWORD`
-- `PG_USER`
-- `PG_PASSWORD`
-- `PG_DB`
-- `MONGO_USER`
-- `MONGO_PASSWORD`
-- `MONGO_DB`
-- `MONGO_URI`
-- `REDIS_HOST`
-- `REDIS_PORT`
-- `MINIO_ROOT_USER`
-- `MINIO_ROOT_PASSWORD`
-- `MINIO_ENDPOINT`
-- `MINIO_BUCKET`
+2. **Configurar Entorno de la Aplicación Laravel:**
+```bash
+# Copia el archivo de ejemplo en la raíz del proyecto PHP
+cp src/php-app/.env.example src/php-app/.env
 
-## Ejecución completa con Docker
+```
 
-Este es el flujo recomendado para levantar todo el ecosistema local.
 
-1. Cambia a la carpeta de Docker.
+
+---
+
+## 5. Credenciales por Defecto y Puertos
+
+Al levantar el entorno con los archivos `.env.example` preconfigurados, los servicios se inicializan con los siguientes accesos:
+
+| Servicio | Componente / BD | Puerto Host | Usuario / Rol | Contraseña por Defecto |
+| --- | --- | --- | --- | --- |
+| **Nginx** | Proxy Inverso (Web) | `80` | N/A | Acceso Público (`http://localhost`) |
+| **SQL Server** | Documentos & Usuarios | `1433` | `sa` | `SecurePassword123!` |
+| **PostgreSQL** | Auditoría | `5432` | `postgres_user` | `postgres_password` |
+| **MongoDB** | Índice Full-Text | `27017` | `mongo_user` | `mongo_password` |
+| **MinIO API** | Almacenamiento de Objetos | `9000` | `minio_user` | `minio_password` |
+| **MinIO Console** | Panel de Administración | `9001` | `minio_user` | `minio_password` |
+| **Redis** | SSO & Pub/Sub | `6379` | N/A | Sin contraseña (por defecto en red interna) |
+| **FastAPI** | API de Búsqueda | `8000` | N/A | Acceso directo a endpoints / docs |
+
+---
+
+## 6. Despliegue con Docker (Flujo Recomendado)
+
+Para levantar todo el ecosistema coordinado de forma automatizada:
 
 ```bash
+# 1. Navegar al directorio de Docker
 cd docker
-```
 
-2. Construye y levanta toda la pila de servicios.
-
-```bash
+# 2. Construir e inicializar los contenedores
 docker compose up --build
+
 ```
 
-3. Espera a que los contenedores completen su arranque inicial. Durante este proceso:
+### Proceso de inicialización automática en el primer arranque:
 
-- SQL Server aplica el script de inicialización definido en `db/sqlserver/`.
-- PostgreSQL se prepara con los scripts de `db/pgsql/`.
-- El servicio .NET intenta ejecutar migraciones hasta completar la conexión con la base de datos.
-- Laravel instala dependencias, genera la clave de la aplicación y ejecuta migraciones.
-- FastAPI conecta con MongoDB, crea índices y activa su listener interno.
+1. **SQL Server & PostgreSQL:** Inicializan las bases de datos ejecutando los scripts ubicados en `db/sqlserver/` y `db/pgsql/`.
+2. **.NET Core MVC:** Espera la disponibilidad de SQL Server, ejecuta de forma automática las migraciones de *Entity Framework* e inicia el servidor.
+3. **Laravel:** Instala dependencias mediante Composer, genera la `APP_KEY` dentro de tu `.env`, ejecuta las migraciones correspondientes y arranca el servidor a través del contenedor.
+4. **FastAPI:** Levanta la conexión hacia MongoDB, genera de forma automática los índices de búsqueda y activa el *listener* asíncrono de Redis.
 
-4. Abre la aplicación principal en el navegador.
+Para ingresar a la aplicación, abre tu navegador web e interactúa directamente en: **`http://localhost`**
 
-```text
-http://localhost
-```
-
-5. Si necesitas acceder a servicios auxiliares directamente, usa las siguientes rutas o puertos según corresponda:
-
-- FastAPI: `http://localhost:8000`
-- SQL Server: `localhost:1433`
-- PostgreSQL: `localhost:5432`
-- Redis: `localhost:6379`
-- MinIO API: `http://localhost:9000`
-- MinIO Console: `http://localhost:9001`
-- MongoDB: `localhost:27017`
-
-## Ejecución por módulos
-
-Si prefieres trabajar sobre un servicio específico sin levantar toda la plataforma, puedes iniciar cada aplicación de manera independiente. Este enfoque es útil para depuración, pruebas focalizadas o desarrollo de una sola capa.
-
-### ASP.NET Core
-
-1. Entra en el proyecto principal.
-
-```bash
-cd src/dotnet-core/NormaQ
-```
-
-2. Restaura dependencias y ejecuta la aplicación.
-
-```bash
-dotnet restore
-dotnet watch run
-```
-
-### Laravel
-
-1. Entra en la aplicación Laravel.
-
-```bash
-cd src/php-app
-```
-
-2. Instala dependencias PHP si aún no están presentes.
-
-```bash
-composer install
-```
-
-3. Prepara la aplicación y ejecuta el servidor local.
-
-```bash
-php artisan key:generate
-php artisan migrate
-php artisan serve
-```
-
-4. Si además necesitas compilar recursos frontend, ejecuta:
-
-```bash
-npm install
-npm run dev
-```
-
-### FastAPI
-
-1. Entra en el servicio Python.
-
-```bash
-cd src/fastapi
-```
-
-2. Instala las dependencias del proyecto.
-
-```bash
-pip install -r requirements.txt
-```
-
-3. Inicia el servicio.
-
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## Verificación de funcionamiento
-
-Una vez iniciado el entorno, valida lo siguiente:
-
-- La URL raíz responde a través de Nginx.
-- La aplicación .NET completa sus migraciones y expone su ruta de salud en `/health`.
-- Laravel puede autenticarse y redirigir a su panel operativo.
-- FastAPI responde correctamente en `/health`.
-- SQL Server, PostgreSQL, Redis, MinIO y MongoDB quedan accesibles para los servicios que los requieren.
-
-## Observaciones operativas
-
-- El arranque inicial puede tardar más de lo habitual porque el sistema aplica migraciones y valida dependencias entre contenedores.
-- Si SQL Server aún no está listo, el servicio .NET reintentará la migración varias veces antes de continuar.
-- En Laravel, el contenedor ya contempla la instalación de dependencias y la generación de la clave de aplicación durante el arranque en Docker.
-- Para desarrollo local manual, revisa cuidadosamente las variables de conexión de cada servicio antes de ejecutar comandos individuales.
-
-## Propósito del proyecto
-
-Este repositorio está diseñado para centralizar la gestión documental, la autenticación y la búsqueda bajo un esquema modular. La elección de múltiples tecnologías no responde a un objetivo ornamental, sino a una separación funcional clara: el núcleo transaccional se mantiene en ASP.NET Core, las funciones operativas y de interfaz complementaria viven en Laravel, y la capa de indexación y consulta especializada se delega a FastAPI. En conjunto, la solución ofrece una base sólida para procesos documentales con trazabilidad, almacenamiento y consulta distribuida.
