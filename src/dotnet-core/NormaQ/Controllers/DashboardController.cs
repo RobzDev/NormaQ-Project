@@ -744,7 +744,7 @@ namespace NormaQ.Controllers
 
                         foreach (var email in usuariosANotificar.Distinct())
                         {
-                            await _emailService.EnviarCorreoAsync(email, $"Liberación: {docNombreCompleto}", cuerpoHtmlAprobado);
+                            //await _emailService.EnviarCorreoAsync(email, $"Liberación: {docNombreCompleto}", cuerpoHtmlAprobado);
                         }
                     }
                     // ============================================================
@@ -778,7 +778,7 @@ namespace NormaQ.Controllers
                                 <p style='font-size: 12px; color: #888; margin-top: 40px;'>Sistema de Gestión ISO 9001 - QualityDoc Polyglot</p>
                             </div>";
 
-                            await _emailService.EnviarCorreoAsync(siguiente.Usuario.Email, $"Acción Requerida: Firma Pendiente — {versionData.Documento.Codigo}", cuerpoHtmlFirmaPendiente);
+                           // await _emailService.EnviarCorreoAsync(siguiente.Usuario.Email, $"Acción Requerida: Firma Pendiente — {versionData.Documento.Codigo}", cuerpoHtmlFirmaPendiente);
                         }
                     }
                     // ============================================================
@@ -821,7 +821,7 @@ namespace NormaQ.Controllers
 
                         foreach (var email in involucradosAlerta.Distinct())
                         {
-                            await _emailService.EnviarCorreoAsync(email, $"Rechazado: {versionData.Documento.Codigo}", cuerpoHtmlCancelado);
+                           // await _emailService.EnviarCorreoAsync(email, $"Rechazado: {versionData.Documento.Codigo}", cuerpoHtmlCancelado);
                         }
                     }
                 }
