@@ -193,12 +193,41 @@
 </div>
 
 @section Busqueda{
-   <div class="relative w-full max-w-md group">
-        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" stroke-width="2"></path></svg>
-        <input id="buscador" type="text" placeholder="Buscar por nombre o versión..." class="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 text-sm outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-black/20 transition-all shadow-sm">
+    <div class="relative w-full max-w-md group" id="search-wrapper">
+        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" stroke-width="2"></path></svg>
+        <input id="buscador" type="text" autocomplete="off" placeholder="Buscar por nombre, código o contenido..." 
+               class="w-full pl-11 pr-9 py-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-slate-200/60 dark:border-white/10 text-sm outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-black/20 transition-all shadow-sm">
+        
+        <div id="search-spinner" class="absolute right-4 top-1/2 -translate-y-1/2 hidden">
+            <svg class="w-4 h-4 text-indigo-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4z"></path>
+            </svg>
+        </div>
+
+        <div id="autocomplete-dropdown" 
+             class="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50 overflow-hidden hidden">
+            
+            <div id="autocomplete-api-section" class="hidden">
+                <div class="px-3 pt-2.5 pb-1">
+                    <span class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Índice documental — Aprobados & Obsoletos</span>
+                </div>
+                <div id="autocomplete-api-results"></div>
+            </div>
+
+            <div id="autocomplete-dom-section" class="hidden">
+                <div class="px-3 pt-2.5 pb-1">
+                    <span class="text-[9px] font-bold uppercase tracking-widest text-slate-400">En revisión & Borradores</span>
+                </div>
+                <div id="autocomplete-dom-results"></div>
+            </div>
+
+            <div id="autocomplete-empty" class="hidden px-4 py-5 text-center">
+                <p class="text-xs font-medium text-slate-400">Sin resultados para tu búsqueda</p>
+            </div>
+        </div>
     </div>
 }
-
 @section DeptSelector {
     @if (Model.ContextosDisponibles != null && Model.ContextosDisponibles.Count > 1)
     {
@@ -240,57 +269,321 @@
                                         </div>
 }
 
-                                                @section Scripts {
-                                                    <script>
-                                                        let estadoActivo = null;
+                                               @section Scripts {
+    <script>
+        // ─── Estado global ───────────────────────────────────────────────
+        let estadoActivo = null;
+        let searchDebounceTimer = null;
+        let lastQuery = '';
+        const DEPT_ID = '@Model.DepartamentoActivoId';
+        const FASTAPI_BASE = 'http://fastapi-service:8000';
 
-                                                        function aplicarFiltros() {
-                                                            const termino = document.getElementById('buscador').value.toLowerCase().trim();
+        // ─── Estados que van por FastAPI (indexados en MongoDB) ──────────
+        const ESTADOS_API = new Set(['Aprobado', 'Obsoleto']);
+        // Los estados Revision y Borrador se buscan por DOM
 
-                                                            // Si no hay nada en el buscador ni filtro, mostrar todo y salir
-                                                            if (!termino && !estadoActivo) {
-                                                                document.querySelectorAll('[data-nombre]').forEach(el => el.style.display = '');
-                                                                document.querySelectorAll('details.iso-folder').forEach(d => d.style.display = '');
-                                                                return;
-                                                            }
+        // ────────────────────────────────────────────────────────────────
+        // FILTRO DOM (estados no indexados + filtro de sidebar)
+        // ────────────────────────────────────────────────────────────────
+        function aplicarFiltrosDom(termino) {
+            document.querySelectorAll('[data-nombre]').forEach(el => {
+                const estado = el.dataset.estado ?? '';
+                const nombreOk = !termino || (el.dataset.nombre ?? '').includes(termino) || (el.dataset.version ?? '').includes(termino);
+                const estadoOk = !estadoActivo || estado === estadoActivo;
+                el.style.display = (nombreOk && estadoOk) ? '' : 'none';
+            });
 
-                                                            document.querySelectorAll('[data-nombre]').forEach(el => {
-                                                                const nombreOk = !termino || (el.dataset.nombre ?? '').includes(termino) || (el.dataset.version ?? '').includes(termino);
-                                                                const estadoOk = !estadoActivo || el.dataset.estado === estadoActivo;
-                                                                el.style.display = (nombreOk && estadoOk) ? '' : 'none';
-                                                            });
+            document.querySelectorAll('details.iso-folder').forEach(details => {
+                details.style.display = '';
+                const hayVisibles = [...details.querySelectorAll('[data-nombre]')]
+                    .some(el => el.style.display !== 'none');
+                details.style.display = hayVisibles ? '' : 'none';
+            });
+        }
 
-                                                            document.querySelectorAll('details.iso-folder').forEach(details => {
-                                                                details.style.display = ''; // resetear primero
-                                                                const hayVisibles = [...details.querySelectorAll('[data-nombre]')]
-                                                                    .some(el => el.style.display !== 'none');
-                                                                details.style.display = hayVisibles ? '' : 'none';
-                                                            });
-                                                        }
+        function aplicarFiltros() {
+            const termino = document.getElementById('buscador').value.toLowerCase().trim();
+            if (!termino && !estadoActivo) {
+                document.querySelectorAll('[data-nombre]').forEach(el => el.style.display = '');
+                document.querySelectorAll('details.iso-folder').forEach(d => d.style.display = '');
+                return;
+            }
+            aplicarFiltrosDom(termino);
+        }
 
-                                                        function filtrar(estado) {
-                                                            estadoActivo = estado;
-                                                            document.getElementById('buscador').value = '';
-                                                            aplicarFiltros();
-                                                        }
+        function filtrar(estado) {
+            estadoActivo = estado;
+            document.getElementById('buscador').value = '';
+            ocultarDropdown();
+            aplicarFiltros();
+        }
 
-                                                        document.getElementById('buscador').addEventListener('input', aplicarFiltros);
+        // ────────────────────────────────────────────────────────────────
+        // BÚSQUEDA DOM para autocompletado (Revision + Borrador)
+        // ────────────────────────────────────────────────────────────────
+        function buscarEnDom(termino) {
+            const resultados = [];
+            document.querySelectorAll('[data-nombre][data-estado]').forEach(el => {
+                const estado = el.dataset.estado ?? '';
+                if (ESTADOS_API.has(estado)) return; // solo no-indexados
 
-                                                        function actualizarConteo() {
-                                                            const conteos = { Aprobado: 0, Revision: 0, Borrador: 0, Obsoleto: 0 };
-                                                            document.querySelectorAll('[data-estado]').forEach(el => {
-                                                                const estado = el.dataset.estado;
-                                                                if (Object.prototype.hasOwnProperty.call(conteos, estado)) conteos[estado]++;
-                                                            });
-                                                            Object.entries(conteos).forEach(([estado, n]) => {
-                                                                const el = document.getElementById('conteo-' + estado.toLowerCase());
-                                                                if (el) el.textContent = n;
-                                                            });
-                                                        }
+                const nombre = el.dataset.nombre ?? '';
+                const version = el.dataset.version ?? '';
 
-                                                        document.addEventListener('DOMContentLoaded', actualizarConteo);
-                                                    </script>
-                                                }
+                if (nombre.includes(termino) || version.includes(termino)) {
+                    // Buscar el nombre bonito y código del padre
+                    const card = el.closest('.bg-white\\/80, [class*="bg-white"]');
+                    const h4 = el.querySelector('.text-sm.font-bold');
+                    const codigo = el.querySelector('.font-mono');
+
+                    resultados.push({
+                        nombre: h4 ? h4.textContent.trim() : nombre,
+                        codigo: codigo ? codigo.textContent.trim() : '',
+                        estado: estado,
+                        version: version,
+                        elemento: el
+                    });
+                }
+            });
+            return resultados.slice(0, 4);
+        }
+
+        // ────────────────────────────────────────────────────────────────
+        // LLAMADA A FASTAPI (Aprobados + Obsoletos)
+        // ────────────────────────────────────────────────────────────────
+   // En buscarEnApi, normaliza el estado al recibirlo:
+async function buscarEnApi(termino) {
+    const params = new URLSearchParams({ q: termino, departamento: DEPT_ID });
+    const resp = await fetch(`/Dashboard/Autocomplete?${params}`, {
+        signal: AbortSignal.timeout(15000)
+    });
+    if (!resp.ok) throw new Error(`Proxy ${resp.status}`);
+    const data = await resp.json();
+    
+    // Normalizar estado a PascalCase para consistencia con el DOM
+    return (data.results ?? []).map(r => ({
+        ...r,
+        estado: r.estado
+            ? r.estado.charAt(0).toUpperCase() + r.estado.slice(1).toLowerCase()
+            : ''
+    }));
+}
+        // ────────────────────────────────────────────────────────────────
+        // RENDER DEL DROPDOWN
+        // ────────────────────────────────────────────────────────────────
+        const estadoBadge = {
+            'Aprobado':  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+            'Obsoleto':  'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400',
+            'Revision':  'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+            'Borrador':  'bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300',
+        };
+
+        function highlight(text, termino) {
+            if (!termino) return text;
+            const re = new RegExp(`(${termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(re, '<mark class="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 rounded px-0.5 not-italic font-bold">$1</mark>');
+        }
+
+        function renderApiResult(doc, termino) {
+            const nombre = doc.display_name ?? '—';
+            const codigo = doc.metadata?.codigo ?? '';
+            const nivel  = doc.metadata?.nivel ?? '';
+            const estado = doc.estado ?? '';
+            const snippet = doc.snippet ?? '';
+            const badgeClass = estadoBadge[estado] ?? 'bg-slate-100 text-slate-600';
+
+            return `<div class="autocomplete-item px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer border-b border-slate-100 dark:border-white/5 last:border-0 transition-colors"
+                        data-tipo="api" data-storage="${doc.storage_path ?? ''}">
+                <div class="flex items-start justify-between gap-2 mb-1">
+                    <p class="text-xs font-bold text-slate-800 dark:text-white leading-tight">${highlight(nombre, termino)}</p>
+                    <span class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded ${badgeClass}">${estado}</span>
+                </div>
+                <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                    <span class="font-mono text-indigo-500">${highlight(codigo, termino)}</span>
+                    ${nivel ? `<span class="text-slate-300 dark:text-slate-600">·</span><span>${nivel}</span>` : ''}
+                </div>
+                ${snippet ? `<p class="text-[10px] text-slate-400 mt-1 leading-snug line-clamp-2">${snippet}</p>` : ''}
+            </div>`;
+        }
+
+        function renderDomResult(item, termino) {
+            const badgeClass = estadoBadge[item.estado] ?? 'bg-slate-100 text-slate-600';
+            return `<div class="autocomplete-item px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer border-b border-slate-100 dark:border-white/5 last:border-0 transition-colors"
+                        data-tipo="dom" data-estado="${item.estado}">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-xs font-bold text-slate-800 dark:text-white leading-tight">${highlight(item.nombre, termino)}</p>
+                    <span class="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded ${badgeClass}">${item.estado}</span>
+                </div>
+                ${item.codigo ? `<span class="font-mono text-[10px] text-indigo-500">${item.codigo}</span>` : ''}
+                <p class="text-[10px] text-slate-400 mt-0.5">v${item.version}</p>
+            </div>`;
+        }
+
+        function mostrarDropdown(apiResults, domResults, termino) {
+            const dropdown = document.getElementById('autocomplete-dropdown');
+            const apiSection = document.getElementById('autocomplete-api-section');
+            const domSection = document.getElementById('autocomplete-dom-section');
+            const emptyState = document.getElementById('autocomplete-empty');
+            const apiContainer = document.getElementById('autocomplete-api-results');
+            const domContainer = document.getElementById('autocomplete-dom-results');
+
+            const hayApi = apiResults.length > 0;
+            const hayDom = domResults.length > 0;
+
+            if (!hayApi && !hayDom) {
+                apiSection.classList.add('hidden');
+                domSection.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+
+                if (hayApi) {
+                    apiContainer.innerHTML = apiResults.map(r => renderApiResult(r, termino)).join('');
+                    apiSection.classList.remove('hidden');
+                } else {
+                    apiSection.classList.add('hidden');
+                }
+
+                if (hayDom) {
+                    domContainer.innerHTML = domResults.map(r => renderDomResult(r, termino)).join('');
+                    domSection.classList.remove('hidden');
+                } else {
+                    domSection.classList.add('hidden');
+                }
+            }
+
+            dropdown.classList.remove('hidden');
+
+            // Clicks en resultados de API → scroll al primer doc o abrir path
+            apiContainer.querySelectorAll('.autocomplete-item').forEach((el, i) => {
+                el.addEventListener('click', () => {
+                    const storage = el.dataset.storage;
+                    ocultarDropdown();
+                    document.getElementById('buscador').value = '';
+                    // Aplicamos filtro de Aprobado/Obsoleto para resaltar en DOM
+                    const estado = apiResults[i]?.estado;
+                    if (estado) filtrar(estado);
+                });
+            });
+
+            // Clicks en resultados DOM → scroll + abrir el details padre
+            domContainer.querySelectorAll('.autocomplete-item').forEach((el, i) => {
+                el.addEventListener('click', () => {
+                    ocultarDropdown();
+                    const item = domResults[i];
+                    if (item?.elemento) {
+                        const details = item.elemento.closest('details');
+                        if (details) {
+                            details.open = true;
+                            details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                        item.elemento.style.outline = '2px solid #6366f1';
+                        item.elemento.style.borderRadius = '12px';
+                        setTimeout(() => { item.elemento.style.outline = ''; }, 2000);
+                    }
+                    document.getElementById('buscador').value = item.nombre;
+                    aplicarFiltrosDom(item.nombre.toLowerCase());
+                });
+            });
+        }
+
+        function ocultarDropdown() {
+            document.getElementById('autocomplete-dropdown').classList.add('hidden');
+        }
+
+        // ────────────────────────────────────────────────────────────────
+        // ORQUESTADOR HÍBRIDO con debounce
+        // ────────────────────────────────────────────────────────────────
+        async function busquedaHibrida(termino) {
+            if (!termino || termino.length < 2) {
+                ocultarDropdown();
+                aplicarFiltros();
+                return;
+            }
+
+            const spinner = document.getElementById('search-spinner');
+            spinner.classList.remove('hidden');
+
+            // Búsqueda DOM (síncrona, inmediata)
+            const domResults = buscarEnDom(termino);
+
+            // Búsqueda API (asíncrona)
+            let apiResults = [];
+            try {
+                // Solo llamamos a la API si no hay un filtro activo de DOM states
+                const estadosFiltrados = estadoActivo ? [estadoActivo] : null;
+                const necesitaApi = !estadosFiltrados || ESTADOS_API.has(estadosFiltrados[0]);
+                if (necesitaApi) {
+                    apiResults = await buscarEnApi(termino);
+                    // Filtrar por estado activo si hay uno de tipo API
+                    if (estadoActivo && ESTADOS_API.has(estadoActivo)) {
+                        apiResults = apiResults.filter(r => r.estado === estadoActivo);
+                    }
+                }
+            } catch (err) {
+                console.warn('[NormaQ] FastAPI no disponible:', err.message);
+                // Fallback silencioso: solo mostramos resultados DOM
+            }
+
+            spinner.classList.add('hidden');
+            mostrarDropdown(apiResults, domResults, termino);
+
+            // También aplicamos filtro visual en el árbol DOM
+            aplicarFiltrosDom(termino);
+        }
+
+        // ────────────────────────────────────────────────────────────────
+        // EVENT LISTENERS
+        // ────────────────────────────────────────────────────────────────
+        const buscador = document.getElementById('buscador');
+
+        buscador.addEventListener('input', () => {
+            const termino = buscador.value.toLowerCase().trim();
+            if (termino === lastQuery) return;
+            lastQuery = termino;
+
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => busquedaHibrida(termino), 280);
+        });
+
+        buscador.addEventListener('focus', () => {
+            const termino = buscador.value.toLowerCase().trim();
+            if (termino.length >= 2) busquedaHibrida(termino);
+        });
+
+        // Cerrar al hacer click fuera
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('search-wrapper').contains(e.target)) {
+                ocultarDropdown();
+            }
+        });
+
+        // Cerrar con Escape
+        buscador.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                ocultarDropdown();
+                buscador.blur();
+            }
+        });
+
+        // ────────────────────────────────────────────────────────────────
+        // CONTEO SIDEBAR (sin cambios)
+        // ────────────────────────────────────────────────────────────────
+        function actualizarConteo() {
+            const conteos = { Aprobado: 0, Revision: 0, Borrador: 0, Obsoleto: 0 };
+            document.querySelectorAll('[data-estado]').forEach(el => {
+                const estado = el.dataset.estado;
+                if (Object.prototype.hasOwnProperty.call(conteos, estado)) conteos[estado]++;
+            });
+            Object.entries(conteos).forEach(([estado, n]) => {
+                const el = document.getElementById('conteo-' + estado.toLowerCase());
+                if (el) el.textContent = n;
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', actualizarConteo);
+    </script>
+}
 
 @section SideDocCount {
     @{

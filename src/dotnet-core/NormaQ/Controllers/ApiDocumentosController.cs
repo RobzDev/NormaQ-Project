@@ -35,4 +35,6 @@ public class ApiDocumentosController : ControllerBase
         var docs = await _context.DocumentosAprobados.ToListAsync();
         return Ok(docs);
     }
+
+    
 }

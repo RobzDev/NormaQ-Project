@@ -27,13 +27,15 @@ namespace NormaQ.Controllers
         private readonly IEmailService _emailService; // Añadido para notificar al usuario
         private readonly HttpClient _httpClient;
 
-        public DashboardController(AppDbContext context, MinioService minioService, RedisPublisherService redisPublisher, IEmailService emailService, HttpClient httpClient)
+
+        public DashboardController(AppDbContext context, MinioService minioService, RedisPublisherService redisPublisher, IEmailService emailService, HttpClient httpClient, IHttpClientFactory httpClientFactory)
         {
             _context = context;
             _minioService = minioService;
             _redisPublisher = redisPublisher;
             _emailService = emailService;
             _httpClient = httpClient;
+            
         }
         public async Task<IActionResult> Index(int? selectedDeptId)
         {
@@ -183,6 +185,44 @@ namespace NormaQ.Controllers
 
             return View(vm);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Autocomplete([FromQuery] string q, [FromQuery] string departamento)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Length < 1)
+                return Ok("{\"results\":[]}");
+
+            try
+            {
+                var departamentoFiltro = departamento?.Trim() ?? string.Empty;
+
+                if (int.TryParse(departamentoFiltro, out var departamentoId))
+                {
+                    departamentoFiltro = await _context.Departamentos
+                        .Where(d => d.Id == departamentoId)
+                        .Select(d => d.Nombre)
+                        .FirstOrDefaultAsync() ?? departamentoFiltro;
+                }
+
+                var url = $"http://fastapi-service:8000/search/autocomplete" +
+                          $"?q={Uri.EscapeDataString(q)}&departamento={Uri.EscapeDataString(departamentoFiltro)}";
+
+                var response = await _httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                    return Ok("{\"results\":[]}");
+
+                var json = await response.Content.ReadAsStringAsync();
+                return Content(json, "application/json");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NormaQ] FastAPI proxy falló: {ex.Message}");
+                return Ok("{\"results\":[]}");
+            }
+        }
+
+
 
         [HttpGet]
         public async Task<IActionResult> CrearDocumento(int departamentoId)
