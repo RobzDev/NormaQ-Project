@@ -479,20 +479,21 @@ namespace NormaQ.Controllers
                 .Include(d => d.VersionesDocumentos)
                 .FirstOrDefaultAsync(d => d.Id == model.DocumentoId);
 
-            if (documento == null) return NotFound();
+            // 2. Lógica de Versionamiento
+            byte vMayor = 0, vMenor = 1;
 
-            // 2. Ejecución: Lógica de Versionamiento (A, B, C)
-            byte vMayor = 1, vMenor = 0;
             var ultimaVersion = documento.VersionesDocumentos
-                .OrderByDescending(v => v.VersionMayor).ThenByDescending(v => v.VersionMenor)
+                .OrderByDescending(v => v.VersionMayor)
+                .ThenByDescending(v => v.VersionMenor)
                 .FirstOrDefault();
 
             if (ultimaVersion != null)
             {
-                if (ultimaVersion.Estado == "Aprobado") { vMayor = (byte)(ultimaVersion.VersionMayor + 1); vMenor = 0; }
-                else { vMayor = ultimaVersion.VersionMayor; vMenor = (byte)(ultimaVersion.VersionMenor + 1); }
+                // Siempre hereda el mayor actual y sube el menor
+                // La promoción a N.0 ocurre en FirmarDocumento al aprobar
+                vMayor = ultimaVersion.VersionMayor;
+                vMenor = (byte)(ultimaVersion.VersionMenor + 1);
             }
-
             // 3. Preparar Identificador para MinIO
             string extension = Path.GetExtension(model.ArchivoFisico.FileName).ToLower();
             string rutaMinio = $"{documento.Departamento.Compania.Id}/{documento.DepartamentoId}/Nivel_{documento.Nivel.Numero}/{documento.Codigo}-v{vMayor}.{vMenor}{extension}";
@@ -686,29 +687,72 @@ namespace NormaQ.Controllers
                 // ============================================================
                 // 4. CONSULTA POST-TRIGGER: Resolución Limpia de Datos
                 // ============================================================
-                var versionData = await _context.VersionesDocumentos
-                .AsNoTracking()
-                .Include(v => v.Documento)
-                    .ThenInclude(d => d.Departamento)
-                .FirstOrDefaultAsync(v => v.Id == model.VersionId);
-
+              var versionData = await _context.VersionesDocumentos
+                    .Include(v => v.Documento)
+                        .ThenInclude(d => d.Departamento)
+                            .ThenInclude(dep => dep.Compania)
+                    .Include(v => v.Documento)
+                        .ThenInclude(d => d.Nivel)
+                    .FirstOrDefaultAsync(v => v.Id == model.VersionId);
                 if (versionData != null)
                 {
                     Console.WriteLine($"[DEBUG] Estado detectado post-trigger: {versionData.Estado}");
 
                     string linkVersion = Url.Action("VisualizarVersion", "Dashboard", new { versionId = versionData.Id }, Request.Scheme) ?? string.Empty;
                     string docNombreCompleto = $"{versionData.Documento.Nombre} (v{versionData.VersionMayor}.{versionData.VersionMenor})";
+                    string versionOriginalLabel = $"v{versionData.VersionMayor}.{versionData.VersionMenor}";
 
-                    // ============================================================
-                    // CONTEXTO A: DOCUMENTO TOTALMENTE APROBADO
-                    // ============================================================
-                    if (versionData.Estado == "Aprobado")
+
+                    if (versionData.Estado == "Aprobado" || versionData.Estado == "Obsoleto")
                     {
                         await _redisPublisher.PublishDocumentAsync(new DocumentApprovedMessage
                         {
                             VersionId = versionData.Id
                         });
                         Console.WriteLine($"[Redis] Notificación enviada para versión {versionData.Id}");
+                    }
+
+                    // ============================================================
+                    // CONTEXTO A: DOCUMENTO TOTALMENTE APROBADO
+                    // ============================================================
+                    if (versionData.Estado == "Aprobado")
+                    {
+                        byte nuevaVersionMayor = (byte)(versionData.VersionMayor + 1);
+                        byte nuevaVersionMenor = 0;
+
+                        // 2. Ejecución: Sincronización Física en MinIO (Renombrar archivo)
+                        string extension = Path.GetExtension(versionData.MinioIdentifier).ToLower();
+
+                        // Construimos la nueva ruta destino con el formato entero (ej: -v1.0.pdf)
+                        string nuevaRutaMinio = $"{versionData.Documento.Departamento.Compania.Id}/{versionData.Documento.DepartamentoId}/Nivel_{versionData.Documento.Nivel.Numero}/{versionData.Documento.Codigo}-v{nuevaVersionMayor}.{nuevaVersionMenor}{extension}";
+
+                        try
+                        {
+                            // Copiamos el archivo existente de la ruta temporal (0.1) a la ruta oficial (1.0)
+                            await _minioService.CopiarArchivoAsync(versionData.MinioIdentifier, nuevaRutaMinio);
+
+                            // Eliminamos el archivo de la ruta vieja (0.1) para evitar basura en MinIO
+                            await _minioService.EliminarArchivoAsync(versionData.MinioIdentifier);
+
+                            // 3. Ejecución: Actualizar datos de versión en la Entidad Trackeada
+                            versionData.VersionMayor = nuevaVersionMayor;
+                            versionData.VersionMenor = nuevaVersionMenor;
+                            versionData.MinioIdentifier = nuevaRutaMinio; // Actualizamos el puntero de almacenamiento
+
+                            // Persistimos los cambios definitivos de la versión entera en la base de datos
+                            await _context.SaveChangesAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[MINIO/SQL ERROR] Falló la promoción física a versión entera: {ex.Message}");
+                            // Si MinIO o el save falla, dejamos que el flujo continue o lance la excepción según tu manejo
+                            throw;
+                        }
+
+                        // Re-construimos las variables de texto con los nuevos datos oficiales de la unidad entera
+                        string docPostAprobacion = $"{versionData.Documento.Nombre} (v{versionData.VersionMayor}.{versionData.VersionMenor})";
+                        string linkPostAprobacion = Url.Action("VisualizarVersion", "Dashboard", new { versionId = versionData.Id }, Request.Scheme) ?? string.Empty;
+
 
                         // Extraer correos de todos los que participaron activamente sin ser cancelados
                         var usuariosANotificar = await _context.FlujosAprobacions
@@ -732,11 +776,11 @@ namespace NormaQ.Controllers
                             <h2 style='color: #10b981;'>QualityDoc — Documento Aprobado Oficialmente</h2>
                             <p>Nos complace informarle que el documento normativo ha concluido exitosamente su ciclo de firmas:</p>
                             <blockquote style='background: #f0fdf4; padding: 15px; border-left: 4px solid #10b981; font-weight: bold;'>
-                                {docNombreCompleto}
+                                {docPostAprobacion}
                             </blockquote>
                             <p>El archivo ya se encuentra disponible para consulta en el repositorio de <strong>{versionData.Documento.Departamento.Nombre}</strong>.</p>                  
                             <br/>
-                            <a href='{linkVersion}' style='background-color: #10b981; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>
+                            <a href='{linkPostAprobacion}' style='background-color: #10b981; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>
                                 Abrir Documento Aprobado
                             </a>
                             <p style='font-size: 12px; color: #888; margin-top: 40px;'>Sistema de Gestión ISO 9001 - QualityDoc Polyglot</p>

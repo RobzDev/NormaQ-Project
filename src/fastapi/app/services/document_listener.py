@@ -1,5 +1,6 @@
 import asyncio
 import json
+import traceback
 import httpx
 import redis.asyncio as aioredis
 from app.core.config import settings
@@ -8,6 +9,8 @@ from app.services.minio_service import download_file_temp
 from app.services.metadata_extractor import extract_metadata
 from app.services.tokenizer import build_search_tokens
 from app.services.index_service import index_document
+import traceback
+
 import os
 
 CHANNEL = "documents:approved"
@@ -67,7 +70,7 @@ async def start_listener():
                     # TODO: verificar documentos sin indexar
                     pass
 
-            except Exception as e:
-                print(f"❌ Error procesando mensaje: {e}", flush=True)
+            except Exception:
+                traceback.print_exc()
 
         await asyncio.sleep(0.01)

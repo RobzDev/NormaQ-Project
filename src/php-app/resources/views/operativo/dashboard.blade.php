@@ -75,6 +75,14 @@
             box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
         }
 
+        mark{
+        background:#facc15;
+        color:#000;
+        padding:1px 3px;
+        border-radius:4px;
+        font-weight:600;
+    }
+
         .search-input {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: #f8fafc;
             transition: all 0.3s;
@@ -145,25 +153,31 @@
     {{-- MAIN CONTENT --}}
     <main class="relative z-10 max-w-5xl mx-auto px-6 pt-32 animate-fade-in-up">
 
-        {{-- BUSCADOR PREMIUM --}}
-        <div class="relative mb-10 group z-30">
-            <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                <svg class="w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-            </div>
-            <input 
-                type="text" 
-                id="buscador" 
-                placeholder="Buscar documentos por código, nombre o norma..." 
-                autocomplete="off"
-                class="search-input w-full rounded-2xl py-4 pl-14 pr-5 text-sm font-medium"
-            />
-            
-            {{-- Dropdown de Resultados --}}
-            <div id="autocomplete-results" class="hidden absolute top-full left-0 w-full mt-2 glass-panel rounded-2xl overflow-hidden shadow-2xl z-40 max-h-80 overflow-y-auto transform origin-top transition-all scale-95 opacity-0">
-                </div>
-        </div>
+       {{-- BUSCADOR PREMIUM --}}
+<div class="relative mb-10 group z-30">
+    <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+        <svg class="w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+    </div>
+
+    <input
+        type="text"
+        id="buscador"
+        placeholder="Buscar documentos por código, nombre, norma o contenido..."
+        autocomplete="off"
+        class="search-input w-full rounded-2xl py-4 pl-14 pr-5 text-sm font-medium"
+    />
+
+    {{-- Dropdown --}}
+    <div id="autocomplete-results"
+         class="hidden absolute top-full left-0 w-full mt-2 glass-panel rounded-2xl overflow-hidden shadow-2xl z-40 max-h-96 overflow-y-auto transform origin-top transition-all scale-95 opacity-0">
+    </div>
+</div>
 
         {{-- CONTENEDOR DEL ÁRBOL DE DOCUMENTOS --}}
         <div class="glass-panel rounded-[24px] overflow-hidden shadow-xl">
@@ -220,9 +234,21 @@
                                                 {{ $doc['display_name'] }}
                                             </p>
                                             <div class="flex items-center gap-2 mt-1">
-                                                <span class="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-black/30 px-1.5 py-0.5 rounded">{{ $doc['metadata']['codigo'] }}</span>
+                                                <span class="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-black/30 px-1.5 py-0.5 rounded">
+                                                    {{ $doc['metadata']['codigo'] }}
+                                                </span>
                                                 @if(!empty($doc['metadata']['norma']))
                                                     <span class="text-[10px] font-medium text-slate-500">{{ $doc['metadata']['norma'] }}</span>
+                                                @endif
+                                                {{-- Badge de estado --}}
+                                                @if(($doc['estado'] ?? '') === 'aprobado')
+                                                    <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                                                        Aprobado
+                                                    </span>
+                                                @elseif(($doc['estado'] ?? '') === 'obsoleto')
+                                                    <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
+                                                        Obsoleto
+                                                    </span>
                                                 @endif
                                             </div>
                                         </div>
@@ -258,7 +284,8 @@
         </div>
     </main>
 
-    <script>
+  <script>
+        // 1. Control de colapso de niveles del árbol
         function toggleNivel(listaId, chevronId) {
             const lista = document.getElementById(listaId);
             const chevron = document.getElementById(chevronId);
@@ -272,6 +299,7 @@
             }
         }
 
+        // 2. Lógica Unificada del Buscador Autocompletado
         const buscador = document.getElementById('buscador');
         const resultados = document.getElementById('autocomplete-results');
         let debounceTimer;
@@ -285,6 +313,7 @@
                 return;
             }
 
+            // Loader mientras se ejecuta el debounce
             resultados.innerHTML = `
                 <div class="p-6 flex items-center justify-center gap-3 text-slate-500 dark:text-slate-400">
                     <svg class="w-5 h-5 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -307,25 +336,43 @@
                         return;
                     }
 
-                    resultados.innerHTML = data.results.map(doc => `
-                        <a href="/operativo/documento/${doc.storage_path}" class="flex items-center justify-between px-5 py-4 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors border-b border-slate-200 dark:border-white/5 last:border-0 group">
-                            <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-transparent flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${doc.display_name}</p>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <span class="text-[10px] font-mono font-bold text-slate-500 bg-slate-200 dark:bg-black/30 px-1.5 rounded">${doc.metadata.codigo}</span>
-                                        <span class="text-[10px] font-medium text-slate-500">${doc.metadata.nivel}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                                <svg class="w-4 h-4 text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
-                            </div>
-                        </a>
-                    `).join('');
+                    // Construcción de los nodos HTML inyectando el snippet de coincidencia full-text
+              resultados.innerHTML = data.results.map(doc => {
+    const estadoBadge = doc.estado === 'aprobado'
+        ? `<span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">Aprobado</span>`
+        : doc.estado === 'obsoleto'
+        ? `<span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">Obsoleto</span>`
+        : '';
+
+    return `
+        <a href="/operativo/documento/${doc.storage_path}" class="flex flex-col px-5 py-4 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors border-b border-slate-200 dark:border-white/5 last:border-0 group">
+            <div class="flex items-center justify-between w-full">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-transparent flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">${doc.display_name}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[10px] font-mono font-bold text-slate-500 bg-slate-200 dark:bg-black/30 px-1.5 rounded">${doc.metadata.codigo}</span>
+                            <span class="text-[10px] font-medium text-slate-500">${doc.metadata.nivel}</span>
+                            ${estadoBadge}
+                        </div>
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                    <svg class="w-4 h-4 text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                </div>
+            </div>
+
+            ${doc.snippet ? `
+                <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 pl-14 pr-8 leading-relaxed border-l-2 border-indigo-500/30 italic">
+                    ...${doc.snippet}...
+                </div>
+            ` : ''}
+        </a>
+    `;
+}).join('');
                 } catch (error) {
                     resultados.innerHTML = `<div class="p-4 text-center text-red-500 text-sm font-bold">Error en la comunicación con el servidor.</div>`;
                 }
@@ -352,6 +399,7 @@
             }
         });
 
+        // 3. Sistema de partículas de fondo (Canvas)
         const canvas = document.getElementById('particles');
         const ctx = canvas.getContext('2d');
         let W, H, particles = [];

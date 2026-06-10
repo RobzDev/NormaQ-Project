@@ -23,6 +23,7 @@ public class DocumentoAprobadoView
     public string Version { get; set; }
 
     public string Owner { get; set; }
+    public string Estado { get; set; } = string.Empty;
 
     public string? ApprovedBy { get; set; }
 

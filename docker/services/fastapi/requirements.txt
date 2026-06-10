@@ -9,3 +9,4 @@ pydantic-settings
 httpx
 python-multipart
 boto3
+python-docx

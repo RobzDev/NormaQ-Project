@@ -86,5 +86,26 @@ public class MinioService
         await _s3.DeleteObjectAsync(request);
     }
 
+    public async Task CopiarArchivoAsync(string rutaOrigen, string rutaDestino)
+    {
+        try
+        {
+            // 1. Ejecución: Configurar la petición de copiado interno
+            var request = new CopyObjectRequest
+            {
+                SourceBucket = _bucket,
+                SourceKey = rutaOrigen,
+                DestinationBucket = _bucket,
+                DestinationKey = rutaDestino
+            };
+
+            // 2. Ejecución: S3/MinIO duplica el puntero del archivo internamente
+            await _s3.CopyObjectAsync(request);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            throw new Exception($"Error operativo en el servidor MinIO al copiar objeto: {ex.Message}");
+        }
+    }
 
 }

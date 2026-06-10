@@ -4,12 +4,15 @@ from app.core.database import get_db
 async def index_document(data: dict, metadata: dict, search_tokens: list[str]):
     db = get_db()
     collection = db["documentos_indexados"]
+    
 
     document = {
     "doc_id": str(data["documentoId"]),
     "version_id": str(data["versionId"]),
+    "estado": data.get("estado", "").lower(),
     "display_name": data["nombreDocumento"],
     "search_tokens": search_tokens,
+    "full_text": metadata.get("full_text", ""),  # Guardar el texto completo para búsquedas futuras
     "metadata": {
         "codigo": data.get("codigoDocumento"),
         "nivel": data.get("nivel"),
@@ -32,10 +35,7 @@ async def index_document(data: dict, metadata: dict, search_tokens: list[str]):
 }
 
     # Upsert: si el doc_id ya existe lo actualiza, si no lo crea
-    await collection.update_one(
-        {"doc_id": str(data["documentoId"])},  # filtro por documento maestro
-        {"$set": document},
-        upsert=True
-    )
+    await collection.insert_one(document)
+
 
     print(f"✅ Documento indexado en MongoDB: {data.get('codigoDocumento')}", flush=True)

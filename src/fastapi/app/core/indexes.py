@@ -14,6 +14,12 @@ async def create_indexes():
     ])
 
     # Evitar duplicados por doc_id
-    await collection.create_index("doc_id", unique=True)
+    await collection.create_index("version_id", unique=True)
+
+    # Búsqueda de texto completo sobre el contenido extraído
+    await collection.create_index(
+        [("full_text", "text")],
+        default_language="spanish"
+    )
 
     print("✅ Índices MongoDB creados", flush=True)

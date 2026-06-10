@@ -216,7 +216,7 @@ namespace NormaQ.Migrations
                     id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     documento_id = table.Column<int>(type: "int", nullable: false),
-                    version_mayor = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)1),
+                    version_mayor = table.Column<byte>(type: "tinyint", nullable: false, defaultValue: (byte)0),
                     version_menor = table.Column<byte>(type: "tinyint", nullable: false),
                     estado = table.Column<string>(type: "varchar(20)", unicode: false, maxLength: 20, nullable: false, defaultValue: "Borrador"),
                     minio_identifier = table.Column<string>(type: "varchar(500)", unicode: false, maxLength: 500, nullable: false),

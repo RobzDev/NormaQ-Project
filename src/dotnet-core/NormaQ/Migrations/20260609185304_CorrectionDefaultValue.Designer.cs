@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NormaQ.Data;
 
@@ -11,9 +12,11 @@ using NormaQ.Data;
 namespace NormaQ.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class DbContextModelSnapshot : ModelSnapshot
+    [Migration("20260609185304_CorrectionDefaultValue")]
+    partial class CorrectionDefaultValue
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -215,11 +218,6 @@ namespace NormaQ.Migrations
                     b.Property<int>("DocumentoId")
                         .HasColumnType("int")
                         .HasColumnName("documento_id");
-
-                    b.Property<string>("Estado")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("estado");
 
                     b.Property<string>("Nivel")
                         .IsRequired()

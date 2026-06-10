@@ -1,15 +1,13 @@
 import re
 
-STOPWORDS = {"de", "la", "el", "los", "las", "un", "una", "application", "pdf", "y", "en", "a"}
+STOPWORDS = {"de", "la", "el", "los", "las", "un", "una", "application", 
+             "pdf", "y", "en", "a", "que", "se", "por", "con", "para"}
 
 def tokenize(*texts: str) -> list[str]:
     tokens = set()
     for text in texts:
         if not text:
             continue
-        # Agregar el texto completo en lowercase como token (búsqueda exacta)
-        tokens.add(text.lower().strip())
-        # Separar y agregar partes individuales
         words = re.split(r"[\s\-_./]+", text.lower())
         for word in words:
             word = word.strip()
@@ -27,4 +25,5 @@ def build_search_tokens(data: dict, metadata: dict) -> list[str]:
         data.get("owner", ""),
         data.get("approvedBy", ""),
         metadata.get("extension", ""),
+        metadata.get("full_text", ""),  # <- full text incluido en tokens
     )

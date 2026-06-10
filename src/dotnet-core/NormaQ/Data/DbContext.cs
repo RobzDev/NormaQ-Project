@@ -360,7 +360,7 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
                 .IsUnicode(false)
                 .HasColumnName("minio_identifier");
             entity.Property(e => e.VersionMayor)
-                .HasDefaultValue((byte)1)
+                .HasDefaultValue((byte)0)
                 .HasColumnName("version_mayor");
             entity.Property(e => e.VersionMenor).HasColumnName("version_menor");
 
@@ -400,6 +400,8 @@ public partial class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
 
                 entity.Property(e => e.Nivel)
                     .HasColumnName("nivel");
+
+                entity.Property(e => e.Estado).HasColumnName("estado");
 
                 entity.Property(e => e.NormaCodigo)
                     .HasColumnName("norma_codigo");
