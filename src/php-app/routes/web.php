@@ -18,8 +18,12 @@ Route::get('/hub', [SsoController::class, 'handleHub'])->name('sso.hub');
 Route::middleware('auth.custom')->group(function () {
     Route::get('/operativo/dashboard', [OperativoController::class, 'index']);
     Route::get('/operativo/buscar', [OperativoController::class, 'buscar']);
-    Route::get('/operativo/documento/{storage_path}', [OperativoController::class, 'preview'])
-        ->where('storage_path', '.*');
+  
+    Route::get('/operativo/versiones/{doc_id}',          [OperativoController::class, 'versiones']);
+    Route::get('/operativo/preview/{storage_path}',      [OperativoController::class, 'preview'])
+    ->where('storage_path', '.*');
+    Route::get('/operativo/descargar/{storage_path}',    [OperativoController::class, 'descargar'])
+    ->where('storage_path', '.*');    
 });
 
 Route::post('/operativo/logout', function () {
@@ -31,3 +35,5 @@ Route::post('/operativo/logout', function () {
 Route::get('/operativo/buscar', [OperativoController::class, 'buscar']);
 
 Route::get('/auditoria', [AuditoriaController::class, 'index']);
+
+Route::get('/operativo/versiones/{doc_id}', [OperativoController::class, 'versiones']);

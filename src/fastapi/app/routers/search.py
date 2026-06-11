@@ -35,6 +35,7 @@ async def autocomplete(
             "metadata.norma": 1,
             "full_text": 1,
             "estado": 1,
+            "doc_id": 1,
             
             "metadata.owner": 1,
             "storage_path": 1
@@ -111,24 +112,60 @@ async def get_documentos(
     db = get_db()
     collection = db["documentos_indexados"]
 
-    filtro = {"metadata.departamento": departamento}
-    if estado:
-        filtro["estado"] = estado.lower()
-
-    cursor = collection.find(
-        filtro,
-        {
+    # Un documento único por doc_id, priorizando el aprobado
+    pipeline = [
+        {"$match": {"metadata.departamento": departamento}},
+        {"$sort": {"estado": 1, "indexed_at": -1}},  # aprobado primero
+        {"$group": {
+            "_id": "$doc_id",
+            "doc_id":      {"$first": "$doc_id"},
+            "display_name":{"$first": "$display_name"},
+            "estado":      {"$first": "$estado"},
+            "storage_path":{"$first": "$storage_path"},
+            "metadata":    {"$first": "$metadata"},
+        }},
+        {"$project": {
             "_id": 0,
+            "doc_id": 1,
             "display_name": 1,
             "estado": 1,
+            "storage_path": 1,
             "metadata.codigo": 1,
             "metadata.nivel": 1,
             "metadata.norma": 1,
             "metadata.owner": 1,
             "metadata.approved_at": 1,
-            "storage_path": 1
+        }}
+    ]
+
+    results = await collection.aggregate(pipeline).to_list(length=None)
+    return {"results": results}
+
+
+@router.get("/versiones/{doc_id}")
+async def get_versiones(doc_id: str):
+    db = get_db()
+    collection = db["documentos_indexados"]
+
+    cursor = collection.find(
+        {"doc_id": doc_id},
+        {
+            "_id": 0,
+            "version_id": 1,
+            "display_name": 1,
+            "estado": 1,
+            "storage_path": 1,
+            "metadata.codigo": 1,
+            "metadata.nivel": 1,
+            "metadata.norma": 1,
+            "metadata.owner": 1,
+            "metadata.approved_by": 1,
+            "metadata.approved_at": 1,
+            "metadata.extension": 1,
+            "metadata.file_size_kb": 1,
+            "metadata.page_count": 1,
         }
-    )
+    ).sort("indexed_at", -1)
 
     results = await cursor.to_list(length=None)
     return {"results": results}

@@ -7,7 +7,7 @@
     Layout = "~/Views/Shared/_AuthLayout.cshtml";
 }
 
-<form asp-action="Register" method="post" style="display:flex;flex-direction:column;gap:0.75rem">
+<form asp-action="Register" method="post" id="registerForm" style="display:flex;flex-direction:column;gap:0.75rem">
 
     @if (!ViewData.ModelState.IsValid)
     {
@@ -116,9 +116,9 @@
         <span asp-validation-for="Password" class="val-error"></span>
     </div>
 
-    <button type="submit" class="btn-main mt-2">
-        Crear Cuenta Operativa
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <button type="submit" id="btnSubmitRegister" class="btn-main mt-2">
+        <span class="btn-text">Crear Cuenta Operativa</span>
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
     </button>
@@ -140,16 +140,36 @@
         document.addEventListener('DOMContentLoaded', function () {
             const companiaSelect = document.getElementById('CompaniaSelect');
             const departamentoSelect = document.getElementById('DepartamentoSelect');
+            const registerForm = document.getElementById('registerForm');
+            const btnSubmit = document.getElementById('btnSubmitRegister');
+            const btnText = btnSubmit.querySelector('.btn-text');
 
-            // Deshabilitar el select de departamentos si no hay compañía pre-seleccionada
+            // ─── CONTROL DE TRÁFICO / EVITAR DOBLE ACCIÓN ───
+            registerForm.addEventListener('submit', function (e) {
+                // Comprobar si el validador unobtrusive de jQuery considera válido el formulario
+                // Esto evita congelar el botón si el usuario dejó campos requeridos vacíos
+                if ($(this).valid()) {
+                    // Si ya fue cliqueado, cancelamos cualquier intento posterior
+                    if (btnSubmit.classList.contains('pointer-events-none')) {
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    // Mutación estética y funcional inmediata
+                    btnSubmit.classList.add('pointer-events-none');
+                    btnSubmit.style.opacity = '0.6';
+                    btnSubmit.style.cursor = 'not-allowed';
+                    btnText.textContent = 'Procesando alta e informes...';
+                }
+            });
+
+            // ─── FILTRADO DE DEPARTAMENTOS EN CASCADA ───
             if (!companiaSelect.value) {
                 departamentoSelect.disabled = true;
             }
 
             companiaSelect.addEventListener('change', async function () {
                 const companiaId = this.value;
-
-                // Restablecer el select de departamentos
                 departamentoSelect.innerHTML = '<option value="">-- Seleccione un Departamento --</option>';
 
                 if (!companiaId) {
@@ -157,17 +177,14 @@
                     return;
                 }
 
-                // Indicador visual de carga
                 departamentoSelect.disabled = true;
                 departamentoSelect.innerHTML = '<option value="">Cargando departamentos...</option>';
 
                 try {
-                    // Petición asíncrona al endpoint que creamos en el controlador
                     const response = await fetch(`/Account/GetDepartamentosPorCompania?companiaId=${companiaId}`);
 
                     if (response.ok) {
                         const departamentos = await response.json();
-
                         departamentoSelect.innerHTML = '<option value="">-- Seleccione un Departamento --</option>';
 
                         departamentos.forEach(depto => {

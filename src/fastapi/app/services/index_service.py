@@ -2,11 +2,20 @@ from datetime import datetime, timezone
 from app.core.database import get_db
 
 async def index_document(data: dict, metadata: dict, search_tokens: list[str]):
-    db = get_db()
-    collection = db["documentos_indexados"]
-    
+   db = get_db()
+   collection = db["documentos_indexados"]
 
-    document = {
+    # Si el nuevo documento es aprobado, marcar versiones anteriores del mismo doc como obsoleto
+   if data.get("estado", "").lower() == "aprobado":
+        await collection.update_many(
+            {
+                "doc_id": str(data["documentoId"]),
+                "estado": "aprobado"
+            },
+            {"$set": {"estado": "obsoleto"}}
+        )
+
+   document = {
     "doc_id": str(data["documentoId"]),
     "version_id": str(data["versionId"]),
     "estado": data.get("estado", "").lower(),
@@ -35,7 +44,7 @@ async def index_document(data: dict, metadata: dict, search_tokens: list[str]):
 }
 
     # Upsert: si el doc_id ya existe lo actualiza, si no lo crea
-    await collection.insert_one(document)
+   await collection.insert_one(document)
 
 
-    print(f"✅ Documento indexado en MongoDB: {data.get('codigoDocumento')}", flush=True)
+   print(f"✅ Documento indexado en MongoDB: {data.get('codigoDocumento')}", flush=True)

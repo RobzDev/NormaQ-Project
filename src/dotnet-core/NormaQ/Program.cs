@@ -64,6 +64,7 @@ builder.Services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(
     }
 ));
 builder.Services.AddSingleton<MinioService>();
+builder.Services.AddSingleton<DocumentConverterService>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 

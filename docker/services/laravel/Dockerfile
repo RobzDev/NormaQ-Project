@@ -11,7 +11,14 @@ RUN apk add --no-cache \
     unzip \
     git \
     curl
-
+    
+RUN apk add --no-cache \
+    libreoffice \
+    openjdk17-jre-headless \
+    fontconfig \
+    font-liberation \
+    font-noto \
+    && fc-cache -fv
 # 2. Instalar dependencias de COMPILACIÓN (Build-time)
 # Estas sí se borran al final para que la imagen pese menos.
 RUN set -eux; \

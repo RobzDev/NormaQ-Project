@@ -208,8 +208,7 @@
                                 <div class="text-left">
                                     <span class="block font-bold text-slate-800 dark:text-white text-sm">{{ $nivel }}</span>
                                     <span class="block text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-                                        {{ $documentos->count() }} {{ $documentos->count() === 1 ? 'Archivo' : 'Archivos' }}
-                                    </span>
+                                {{ $documentos['total'] }} {{ $documentos['total'] === 1 ? 'Archivo' : 'Archivos' }}                                    </span>
                                 </div>
                             </div>
                             <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-black/30 flex items-center justify-center">
@@ -221,8 +220,8 @@
 
                         {{-- Lista Contenido --}}
                         <div id="lista-{{ $loop->index }}" class="hidden border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 px-3 py-3 space-y-2">
-                            @foreach($documentos as $doc)
-                                <a href="/operativo/documento/{{ $doc['storage_path'] }}" class="flex items-center justify-between p-3 rounded-xl bg-transparent hover:bg-white dark:hover:bg-white/10 transition-all hover:-translate-y-0.5 group border border-transparent hover:border-slate-300 dark:hover:border-white/10 hover:shadow-sm">
+                            @foreach($documentos['items'] as $doc)
+                                <a href="/operativo/versiones/{{ $doc['doc_id'] }}" class="flex items-center justify-between p-3 rounded-xl bg-transparent hover:bg-white dark:hover:bg-white/10 transition-all hover:-translate-y-0.5 group border border-transparent hover:border-slate-300 dark:hover:border-white/10 hover:shadow-sm">
                                     <div class="flex items-center gap-4">
                                         <div class="w-8 h-8 rounded bg-slate-200 dark:bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-indigo-600 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/20 transition-colors">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,6 +264,39 @@
                                     </div>
                                 </a>
                             @endforeach
+                            {{-- CONTROLES DE PAGINACIÓN MANUAL --}}
+                            @if($documentos['lastPage'] > 1)
+                                <div class="flex items-center justify-between pt-4 px-3 border-t border-slate-200 dark:border-white/5">
+                                    <span class="text-xs text-slate-500 font-medium">
+                                        Página {{ $documentos['page'] }} de {{ $documentos['lastPage'] }}
+                                    </span>
+                                    <div class="flex items-center gap-1">
+                                        {{-- Botón Anterior --}}
+                                        @if($documentos['page'] > 1)
+                                            <a href="{{ request()->fullUrlWithQuery(["page_{$documentos['slug']}" => $documentos['page'] - 1]) }}" 
+                                               class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
+                                                Anterior
+                                            </a>
+                                        @else
+                                            <button disabled class="px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-white/5 cursor-not-allowed">
+                                                Anterior
+                                            </button>
+                                        @endif
+
+                                        {{-- Botón Siguiente --}}
+                                        @if($documentos['page'] < $documentos['lastPage'])
+                                            <a href="{{ request()->fullUrlWithQuery(["page_{$documentos['slug']}" => $documentos['page'] + 1]) }}" 
+                                               class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
+                                                Siguiente
+                                            </a>
+                                        @else
+                                            <button disabled class="px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-white/5 cursor-not-allowed">
+                                                Siguiente
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
@@ -345,7 +377,7 @@
         : '';
 
     return `
-        <a href="/operativo/documento/${doc.storage_path}" class="flex flex-col px-5 py-4 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors border-b border-slate-200 dark:border-white/5 last:border-0 group">
+        <a href="/operativo/versiones/${doc.doc_id}" class="flex flex-col px-5 py-4 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors border-b border-slate-200 dark:border-white/5 last:border-0 group">
             <div class="flex items-center justify-between w-full">
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-transparent flex items-center justify-center text-indigo-600 dark:text-indigo-400">

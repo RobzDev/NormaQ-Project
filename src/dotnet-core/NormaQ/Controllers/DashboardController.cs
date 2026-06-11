@@ -26,15 +26,17 @@ namespace NormaQ.Controllers
         private readonly RedisPublisherService _redisPublisher;
         private readonly IEmailService _emailService; // Añadido para notificar al usuario
         private readonly HttpClient _httpClient;
+        private readonly DocumentConverterService _documentConverterService;
 
 
-        public DashboardController(AppDbContext context, MinioService minioService, RedisPublisherService redisPublisher, IEmailService emailService, HttpClient httpClient, IHttpClientFactory httpClientFactory)
+        public DashboardController(AppDbContext context, MinioService minioService, RedisPublisherService redisPublisher, IEmailService emailService, HttpClient httpClient, IHttpClientFactory httpClientFactory, DocumentConverterService documentConverterService)
         {
             _context = context;
             _minioService = minioService;
             _redisPublisher = redisPublisher;
             _emailService = emailService;
             _httpClient = httpClient;
+            _documentConverterService = documentConverterService;
             
         }
         public async Task<IActionResult> Index(int? selectedDeptId)
@@ -675,7 +677,25 @@ namespace NormaQ.Controllers
             // inline=true → el navegador muestra el archivo (visor)
             // inline=false → fuerza descarga (botón de descarga)
             if (inline)
+            {
+                if (ext == ".docx")
+                {
+                    try
+                    {
+                        var pdfStream = await _documentConverterService.ConvertDocxToPdfAsync(responseStream);
+                        mimeType = "application/pdf";
+                        fileName = Path.ChangeExtension(fileName, ".pdf");
+                        Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+                        return File(pdfStream, mimeType);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[NormaQ] Error convirtiendo docx a pdf: {ex.Message}");
+                        return StatusCode(500, "No se pudo convertir el documento a PDF.");
+                    }
+                }
                 Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            }
 
             return File(responseStream, mimeType, inline ? null : fileName);
         }
@@ -743,20 +763,19 @@ namespace NormaQ.Controllers
                     string versionOriginalLabel = $"v{versionData.VersionMayor}.{versionData.VersionMenor}";
 
 
-                    if (versionData.Estado == "Aprobado" || versionData.Estado == "Obsoleto")
-                    {
-                        await _redisPublisher.PublishDocumentAsync(new DocumentApprovedMessage
-                        {
-                            VersionId = versionData.Id
-                        });
-                        Console.WriteLine($"[Redis] Notificación enviada para versión {versionData.Id}");
-                    }
 
                     // ============================================================
                     // CONTEXTO A: DOCUMENTO TOTALMENTE APROBADO
                     // ============================================================
                     if (versionData.Estado == "Aprobado")
                     {
+
+                        await _redisPublisher.PublishDocumentAsync(new DocumentApprovedMessage
+                        {
+                            VersionId = versionData.Id
+                        });
+
+                        Console.WriteLine($"[Redis] Notificación enviada para versión {versionData.Id}");
                         byte nuevaVersionMayor = (byte)(versionData.VersionMayor + 1);
                         byte nuevaVersionMenor = 0;
 

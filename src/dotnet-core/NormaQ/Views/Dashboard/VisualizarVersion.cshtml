@@ -8,7 +8,7 @@
     bool intervencion = ViewBag.RequiereMiIntervencion == true;
     string extension = System.IO.Path.GetExtension(Model.MinioIdentifier ?? "").ToLower();
 
-    bool esPdf = extension == ".pdf";
+    bool esPdf = extension == ".pdf" || extension == ".docx";
     bool esImagen = new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp" }.Contains(extension);
     bool esTexto = new[] { ".txt", ".md", ".csv", ".log", ".json", ".xml", ".yaml", ".yml" }.Contains(extension);
     bool esWord = new[] { ".doc", ".docx" }.Contains(extension);
@@ -538,6 +538,7 @@
 
                                 <div
                                     class="flex-1 w-full h-full relative overflow-hidden bg-slate-100/50 dark:bg-[#08080c] flex flex-col justify-center">
+                                    
 
                                     @if (esPdf)
                                     {
@@ -623,7 +624,8 @@
                                                         })();
                                                     </script>
                                                 }
-                    else
+                                                
+                                                 else
                                                 {
                                                     <div
                                                         class="w-full h-full flex flex-col items-center justify-center p-4 sm:p-8 text-center bg-slate-50/50 dark:bg-[#08080c]">
@@ -656,6 +658,8 @@
                                                         }
                                                     </div>
                                                 </div>
+
+                                                
                                             </section>
                                         </main>
 

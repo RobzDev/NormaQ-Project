@@ -39,48 +39,160 @@ class OperativoController extends Controller
         ]);
     }
 
-    public function index()
-    {
-        $departamento = $this->resolveDepartamento();
-        $fastapi      = $this->getFastApiUrl();
+ public function index(Request $request)
+{
+    $departamento = Session::get('user_dept');
+    $fastapi      = $this->getFastApiUrl();
+    $perPage      = 8;
 
-        $response = Http::timeout(5)->get("{$fastapi}/search/documentos", [
-            'departamento' => $departamento,
-        ]);
+    $response = Http::timeout(5)->get("{$fastapi}/search/documentos", [
+        'departamento' => $departamento,
+    ]);
 
-        $documentos = $response->successful() ? $response->json('results') : [];
+    $documentos = $response->successful() ? $response->json('results') : [];
 
-        // Agrupar por nivel para estructura virtual de carpetas
-        $porNivel = collect($documentos)->groupBy(fn($d) => $d['metadata']['nivel'] ?? 'Sin clasificar');
+    // Agrupar por nivel
+    $porNivelRaw = collect($documentos)->groupBy(fn($d) => $d['metadata']['nivel'] ?? 'Sin clasificar');
 
-        return view('operativo.dashboard', [
-            'porNivel'     => $porNivel,
-            'departamento' => $departamento,
-            'userName'     => Session::get('user_name'),
-        ]);
+    // Paginar cada nivel independientemente
+   // Cambiar esto en tu controlador:
+$porNivel = $porNivelRaw->map(function ($docs, $nivel) use ($request, $perPage) {
+    $slug     = str_replace(' ', '_', $nivel);
+    // Usamos el slug directamente para capturar el parámetro de la URL (?page_procedimientos=2)
+    $page     = (int) $request->query("page_{$slug}", 1);
+    $total    = $docs->count();
+    $items    = $docs->slice(($page - 1) * $perPage, $perPage)->values();
+    $lastPage = (int) ceil($total / $perPage);
+
+    return [
+        'items'    => $items,
+        'total'    => $total,
+        'page'     => $page,
+        'lastPage' => $lastPage,
+        'slug'     => $slug,
+    ];
+});
+    return view('operativo.dashboard', [
+        'porNivel'     => $porNivel,
+        'departamento' => $departamento,
+        'userName'     => Session::get('user_name'),
+    ]);
+}
+
+public function versiones(Request $request, string $doc_id)
+{
+    $fastapi  = $this->getFastApiUrl();
+    $response = Http::timeout(5)->get("{$fastapi}/search/versiones/{$doc_id}");
+    $versiones = $response->successful() ? $response->json('results') : [];
+
+    $aprobada  = collect($versiones)->firstWhere('estado', 'aprobado');
+    $obsoletas = collect($versiones)->where('estado', 'obsoleto')->values();
+
+    // Paginación de obsoletas
+    $perPage   = 5;
+    $page      = (int) $request->query('page', 1);
+    $total     = $obsoletas->count();
+    $lastPage  = max(1, (int) ceil($total / $perPage));
+    $obsoletasPaginadas = $obsoletas->slice(($page - 1) * $perPage, $perPage)->values();
+
+    return view('operativo.versiones', [
+        'doc_id'     => $doc_id,
+        'aprobada'   => $aprobada,
+        'obsoletas'  => $obsoletasPaginadas,
+        'page'       => $page,
+        'lastPage'   => $lastPage,
+        'userName'   => Session::get('user_name'),
+        'departamento' => Session::get('user_dept'),
+    ]);
+}
+
+ public function preview(Request $request, string $storage_path)
+{
+    $minio    = $this->getMinioClient();
+    $bucket   = env('MINIO_BUCKET', 'qualitydoc');
+    $convert  = $request->query('convert') === 'pdf';
+    $ext      = strtolower(pathinfo($storage_path, PATHINFO_EXTENSION));
+
+    $object      = $minio->getObject(['Bucket' => $bucket, 'Key' => $storage_path]);
+    $body        = $object['Body']->getContents();
+    $contentType = $object['ContentType'] ?? 'application/octet-stream';
+    $filename    = basename($storage_path);
+
+    $this->logAuditoria($request, $storage_path, 'Lectura');
+
+    // Conversión DOCX → PDF con LibreOffice
+   if ($convert && $ext === 'docx') {
+    
+    $baseTmp = tempnam(sys_get_temp_dir(), 'doc_'); 
+    @unlink($baseTmp); 
+    
+    $tmpDocx = $baseTmp . '.docx';
+    $tmpDir  = sys_get_temp_dir() . '/lo_' . uniqid();
+    $profileDir = sys_get_temp_dir() . '/lop_' . uniqid();
+
+    if (!is_dir($tmpDir)) { mkdir($tmpDir, 0777, true); }
+    if (!is_dir($profileDir)) { mkdir($profileDir, 0777, true); }
+
+    file_put_contents($tmpDocx, $body);
+
+    $escapedOutdir  = escapeshellarg($tmpDir);
+    $escapedDocx    = escapeshellarg($tmpDocx);
+    $envProfilePath = "file://" . $profileDir;
+
+    // Ejecutamos con el parámetro de entorno que desbloqueó el Fatall Error
+    $command = "FONTCONFIG_PATH=/tmp HOME=/tmp libreoffice --headless \"-env:UserInstallation={$envProfilePath}\" --convert-to pdf --outdir {$escapedOutdir} {$escapedDocx} 2>&1";    
+    exec($command, $output, $code);
+
+    $pdfPath = $tmpDir . '/' . pathinfo($tmpDocx, PATHINFO_FILENAME) . '.pdf';
+
+    // Tu prueba de Docker demostró que $code es 0 y el archivo sí se crea físicamente
+    if ($code === 0 && file_exists($pdfPath)) {
+        $pdfContent = file_get_contents($pdfPath);
+
+        // Limpieza de archivos temporales exitosos
+        @unlink($tmpDocx);
+        @unlink($pdfPath);
+        @rmdir($tmpDir);
+        @array_map('unlink', glob("{$profileDir}/*") ?: []);
+        @rmdir($profileDir);
+
+        return response($pdfContent, 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . pathinfo($filename, PATHINFO_FILENAME) . '.pdf"');
     }
 
-    public function preview(Request $request, string $storage_path)
-    {
-        $minio  = $this->getMinioClient();
-        $bucket = env('MINIO_BUCKET', 'qualitydoc');
+    // Si entra aquí, algo diferente falló (ej. disco lleno), dejamos registro en el log
+    \Log::error("Fallo crítico conversión. Código: {$code}. Salida completa: " . implode("\n", $output));
 
-        $object   = $minio->getObject([
-            'Bucket' => $bucket,
-            'Key'    => $storage_path,
-        ]);
+    @unlink($tmpDocx);
+    if (is_dir($tmpDir)) { @array_map('unlink', glob("{$tmpDir}/*")); @rmdir($tmpDir); }
+    if (is_dir($profileDir)) { @array_map('unlink', glob("{$profileDir}/*")); @rmdir($profileDir); }
 
-        $body        = $object['Body']->getContents();
-        $contentType = $object['ContentType'] ?? 'application/octet-stream';
-        $filename    = basename($storage_path);
+    return response('No se pudo convertir el documento.', 500)
+        ->header('Content-Type', 'text/plain');
+}
+    // Retorno por defecto para archivos que no requieren conversión (.pdf, .txt)
+    return response($body, 200)
+        ->header('Content-Type', $contentType)
+        ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+}
 
-        // Log de auditoría en PostgreSQL
-        $this->logAuditoria($request, $storage_path, 'Lectura');
+public function descargar(Request $request, string $storage_path)
+{
+    $minio    = $this->getMinioClient();
+    $bucket   = env('MINIO_BUCKET', 'qualitydoc');
+    $filename = basename($storage_path);
 
-        return response($body, 200)
-            ->header('Content-Type', $contentType)
-            ->header('Content-Disposition', "inline; filename=\"{$filename}\"");
-    }
+    $object      = $minio->getObject(['Bucket' => $bucket, 'Key' => $storage_path]);
+    $body        = $object['Body']->getContents();
+    $contentType = $object['ContentType'] ?? 'application/octet-stream';
+
+    $this->logAuditoria($request, $storage_path, 'Descarga');
+
+    return response($body, 200)
+        ->header('Content-Type', $contentType)
+        ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+}
 
     private function logAuditoria(Request $request, string $storage_path, string $accion): void
     {
