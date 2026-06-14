@@ -1,0 +1,52 @@
+services:
+  dotnet-service:
+    build:
+      context: .
+      dockerfile: ./dotnet/Dockerfile
+      target: dev
+    volumes:
+      - ./dotnet-core/NormaQ:/app
+      - dotnet-build:/app/obj
+      - dotnet-bin:/app/bin
+      - nuget-cache:/root/.nuget/packages
+      - ../db/sqlserver:/scripts/sqlserver:ro
+    working_dir: /app
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ../db/sqlserver:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD}", "-C", "-Q", "SELECT 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-network
+
+volumes:
+  dotnet-build:
+  dotnet-bin:
+  nuget-cache:
+  sqlserver_data:
+    external: true
+    name: docker_sqlserver_data
+
+networks:
+  app-network:
+    external: true

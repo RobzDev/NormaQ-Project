@@ -1,0 +1,53 @@
+services:
+  php-service:
+    build:
+      context: .
+      dockerfile: ./Dockerfile/laravel-dockerfile
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ./laravel-app:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    command:
+      - sh
+      - -lc
+      - |
+        php -r 'while(!@fsockopen("pgsql",5432)){echo "Esperando a Postgres...\n";sleep(1);}';
+        composer install --no-interaction --prefer-dist --optimize-autoloader;
+        if ! grep -q '^APP_KEY=base64:' .env; then
+          php artisan key:generate --force --no-interaction;
+        fi;
+        php artisan migrate --force --no-interaction;
+        php-fpm -F
+    networks:
+      - app-network
+
+  pgsql:
+    image: postgres:15
+    container_name: pgsql
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgsql_data:/var/lib/postgresql/data
+      - ../db/pgsql:/scripts
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-network
+
+volumes:
+  pgsql_data:
+    external: true
+    name: docker_pgsql_data
+
+networks:
+  app-network:
+    external: true
